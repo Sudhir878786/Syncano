@@ -1,23 +1,19 @@
 """
-Vercel WSGI entrypoint for the Syncano Flask app.
+WSGI entrypoint for Vercel / WSGI servers.
 
-This module is imported by Vercel during build/deploy. It must expose
-the Flask WSGI application object named `app`.
-
-It uses the application's factory `create_app` from the package so
-the app is configured the same way as when running locally.
+This module creates and exposes a top-level `app` variable which points
+to the Flask application instance created by the project's application
+factory (in `app.__init__`). Vercel looks for one of several common
+entrypoint paths such as `app/app.py` and expects an `app` object.
 """
 import os
 
-# Use a package-relative import to avoid accidental absolute import loops
-from . import create_app, socketio  # socketio is initialized by create_app
+from . import create_app, socketio  # socketio is initialized at package level
 
-
-# Respect FLASK_ENV or ENV; default to production for Vercel
-env = os.environ.get('FLASK_ENV', os.environ.get('ENV', 'production'))
-
-# Create the Flask application instance using the factory
+# Create the Flask application instance at import time so WSGI servers
+# (like Vercel's Python runtime) can import the module and find `app`.
+env = os.environ.get('FLASK_ENV', 'production')
 app = create_app(env)
 
-# Export socketio too in case a custom runner needs it
-__all__ = ['app', 'socketio']
+# socketio is available as the package-level `socketio` (if needed by server)
+# Do NOT call socketio.run() here; server should run the app via WSGI.
