@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Syncano - Listen together, anywhere</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <i class="fas fa-broadcast-tower"></i>
+                <span>Syncano</span>
+            </div>
+        </div>
+        
+        <nav class="sidebar-nav">
+            <a href="#" class="nav-item active" data-section="home">
+                <i class="fas fa-home"></i>
+                <span>Home</span>
+            </a>
+            <a href="#" class="nav-item" data-section="search">
+                <i class="fas fa-search"></i>
+                <span>Search</span>
+            </a>
+            <a href="#" class="nav-item" data-section="library">
+                <i class="fas fa-book"></i>
+                <span>Your Library</span>
+            </a>
+        </nav>
+        
+        <div class="sidebar-divider"></div>
+        
+        <nav class="sidebar-nav">
+            <a href="#" class="nav-item" id="createPlaylistBtn">
+                <i class="fas fa-plus-square"></i>
+                <span>Create Playlist</span>
+            </a>
+            <a href="#" class="nav-item" id="likedSongsBtn" data-section="liked">
+                <i class="fas fa-heart"></i>
+                <span>Liked Songs</span>
+            </a>
+        </nav>
+        
+        <div class="sidebar-divider"></div>
+        
+        <!-- Room Controls in Sidebar -->
+        <div class="sidebar-rooms">
+            <div class="room-title">Listen Together</div>
+            <button id="createRoomBtn" class="sidebar-room-btn">
+                <i class="fas fa-plus"></i>
+                <span>Create Room</span>
+            </button>
+            <button id="joinRoomBtn" class="sidebar-room-btn">
+                <i class="fas fa-users"></i>
+                <span>Join Room</span>
+            </button>
+            
+            <div id="roomInfo" class="room-info hidden">
+                <div id="roomStatus" class="room-status-text"></div>
+                <div id="roomUsers" class="room-users"></div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-container">
+        <!-- Top Bar -->
+        <div class="top-bar">
+            <div class="nav-buttons">
+                <button class="nav-btn" id="backBtn">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <button class="nav-btn" id="forwardBtn">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+            
+            <div class="search-bar">
+                <i class="fas fa-search"></i>
+                <input type="text" id="searchInput" placeholder="What do you want to listen to?">
+                <button id="testApiBtn" class="test-api-btn" title="Test API Connection">
+                    <i class="fas fa-flask"></i>
+                </button>
+            </div>
+            
+            <div class="user-profile">
+                <button class="profile-btn">
+                    <i class="fas fa-user-circle"></i>
+                    <span>Profile</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Content Area -->
+        <div class="content-area">
+            <!-- Welcome/Home Section -->
+            <section id="welcomeSection" class="home-section">
+                <div class="greeting">
+                    <h1>Good evening</h1>
+                </div>
+                
+                <div class="welcome-message">
+                    <div class="welcome-card">
+                        <i class="fas fa-headphones"></i>
+                        <h2>Welcome to Syncano</h2>
+                        <p class="tagline">🎧 Listen together, anywhere. Perfectly in sync.</p>
+                        <p class="tagline-sub">Real-time. Real beats. Real connection.</p>
+                        <div class="room-feature">
+                            <i class="fas fa-broadcast-tower"></i>
+                            <span>One track, one tempo — infinite listeners.</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="quick-picks">
+                    <h2>Made for you</h2>
+                    <div class="quick-picks-grid">
+                        <div class="quick-pick-item">
+                            <i class="fas fa-fire"></i>
+                            <span>Trending Now</span>
+                        </div>
+                        <div class="quick-pick-item">
+                            <i class="fas fa-star"></i>
+                            <span>Top Charts</span>
+                        </div>
+                        <div class="quick-pick-item">
+                            <i class="fas fa-music"></i>
+                            <span>New Releases</span>
+                        </div>
+                        <div class="quick-pick-item">
+                            <i class="fas fa-podcast"></i>
+                            <span>Podcasts</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Search Results Section -->
+            <section id="searchResults" class="search-section hidden">
+                <h2 class="section-title">Search Results</h2>
+                <div id="resultsContainer" class="results-grid"></div>
+            </section>
+            
+            <!-- Liked Songs Section -->
+            <section id="likedSongs" class="search-section hidden">
+                <h2 class="section-title">Liked Songs</h2>
+                <div id="likedContainer" class="results-grid"></div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Music Player Footer -->
+    <footer class="player-bar">
+        <div class="player-left">
+            <img id="playerImage" src="https://via.placeholder.com/56x56/1DB954/FFFFFF?text=♪" alt="Album Art" class="player-album-art">
+            <div class="player-song-info">
+                <div id="playerTitle" class="player-song-title">No song selected</div>
+                <div id="playerArtist" class="player-song-artist">Select a song to play</div>
+            </div>
+            <button class="player-icon-btn" id="likeCurrentSongBtn" title="Like this song">
+                <i class="far fa-heart"></i>
+            </button>
+        </div>
+        
+        <div class="player-center">
+            <div class="player-controls">
+                <button class="player-control-btn" id="shuffleBtn">
+                    <i class="fas fa-random"></i>
+                </button>
+                <button class="player-control-btn" id="prevBtn">
+                    <i class="fas fa-step-backward"></i>
+                </button>
+                <button class="player-control-btn player-play-btn" id="playPauseBtn">
+                    <i class="fas fa-play"></i>
+                </button>
+                <button class="player-control-btn" id="nextBtn">
+                    <i class="fas fa-step-forward"></i>
+                </button>
+                <button class="player-control-btn" id="repeatBtn">
+                    <i class="fas fa-redo"></i>
+                </button>
+            </div>
+            <div class="player-timeline">
+                <span id="currentTime" class="player-time">0:00</span>
+                <div class="player-progress-bar">
+                    <div id="progressFill" class="player-progress-fill"></div>
+                    <input type="range" id="progressSlider" class="player-progress-slider" min="0" max="100" value="0">
+                </div>
+                <span id="totalTime" class="player-time">0:00</span>
+            </div>
+        </div>
+        
+        <div class="player-right">
+            <button class="player-icon-btn">
+                <i class="fas fa-list"></i>
+            </button>
+            <button class="player-icon-btn">
+                <i class="fas fa-desktop"></i>
+            </button>
+            <div class="player-volume-control">
+                <button class="player-icon-btn" id="volumeBtn">
+                    <i class="fas fa-volume-up"></i>
+                </button>
+                <input type="range" id="volumeSlider" class="player-volume-slider" min="0" max="100" value="50">
+            </div>
+            <button class="player-icon-btn">
+                <i class="fas fa-expand"></i>
+            </button>
+        </div>
+        
+        <audio id="audioPlayer" preload="metadata"></audio>
+    </footer>
+
+    <!-- Loading Spinner -->
+    <div id="loadingSpinner" class="loading-overlay hidden">
+        <div class="spinner"></div>
+        <p>Loading...</p>
+    </div>
+
+    <!-- Room Modal -->
+    <div id="roomModal" class="modal hidden">
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+            <button class="modal-close" id="closeModal">
+                <i class="fas fa-times"></i>
+            </button>
+            <h2 id="modalTitle" class="modal-title">Create Room</h2>
+            <div class="modal-body">
+                <div class="input-group">
+                    <label for="usernameInput">Your Name</label>
+                    <input type="text" id="usernameInput" placeholder="Enter your name" maxlength="20">
+                </div>
+                <div class="input-group hidden" id="roomIdGroup">
+                    <label for="roomIdInput">Room ID</label>
+                    <input type="text" id="roomIdInput" placeholder="Enter room ID">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="modalActionBtn" class="modal-btn">Create Room</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
