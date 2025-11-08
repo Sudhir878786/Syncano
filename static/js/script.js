@@ -96,6 +96,16 @@ function initializeApp() {
     closeModal.addEventListener('click', hideModal);
     modalActionBtn.addEventListener('click', handleModalAction);
     
+    // Sync and leave room buttons
+    const syncWithRoomBtn = document.getElementById('syncWithRoomBtn');
+    const leaveRoomBtn = document.getElementById('leaveRoomBtn');
+    if (syncWithRoomBtn) {
+        syncWithRoomBtn.addEventListener('click', requestRoomSync);
+    }
+    if (leaveRoomBtn) {
+        leaveRoomBtn.addEventListener('click', leaveRoom);
+    }
+    
     // Close modal when clicking overlay
     roomModal.addEventListener('click', function(e) {
         if (e.target === roomModal || e.target.classList.contains('modal-overlay')) {
@@ -286,7 +296,7 @@ async function performSearch() {
     showLoading(true);
     
     try {
-        const response = await fetch(`/search?q=${encodeURIComponent(query)}`);
+        const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
         const data = await response.json();
         
         if (response.ok) {
@@ -415,7 +425,7 @@ async function playSong(index) {
             if (songId) {
                 try {
                     console.log('Fetching song details for ID:', songId);
-                    const response = await fetch(`/song/${encodeURIComponent(songId)}`);
+                    const response = await fetch(`/api/song/${encodeURIComponent(songId)}`);
                     if (response.ok) {
                         const songData = await response.json();
                         console.log('Song details response:', songData);
@@ -759,6 +769,26 @@ function initializeSocket() {
         showSyncIndicator(data.new_host + ' is now the host', 'info');
     });
     
+    socket.on('sync_state', function(data) {
+        console.log('📡 Received sync_state:', data);
+        if (data.current_song) {
+            syncWithRoom(data.current_song, data.is_playing, data.current_time);
+            showSyncIndicator('Vibe Check complete! 🎵', 'success');
+        } else {
+            showSyncIndicator('Room is vibing, but no song playing yet', 'info');
+        }
+    });
+    
+    socket.on('room_left', function(data) {
+        console.log('📡 Received room_left:', data);
+        inRoom = false;
+        isHost = false;
+        currentRoom = null;
+        currentSong = null;
+        updateRoomUI();
+        showSyncIndicator('You left the room', 'info');
+    });
+    
     socket.on('error', function(data) {
         alert('Error: ' + data.message);
         showSyncIndicator('Error: ' + data.message, 'error');
@@ -827,6 +857,9 @@ function joinRoom() {
 }
 
 function updateRoomUI() {
+    const syncWithRoomBtn = document.getElementById('syncWithRoomBtn');
+    const leaveRoomBtn = document.getElementById('leaveRoomBtn');
+    
     if (inRoom) {
         roomInfo.classList.remove('hidden');
         roomStatus.innerHTML = `
@@ -836,8 +869,16 @@ function updateRoomUI() {
                 ${isHost ? '<span style="color: #ffd700;">(Host)</span>' : ''}
             </div>
         `;
+        
+        // Show sync and leave buttons when in room
+        if (syncWithRoomBtn) syncWithRoomBtn.classList.remove('hidden');
+        if (leaveRoomBtn) leaveRoomBtn.classList.remove('hidden');
     } else {
         roomInfo.classList.add('hidden');
+        
+        // Hide sync and leave buttons when not in room
+        if (syncWithRoomBtn) syncWithRoomBtn.classList.add('hidden');
+        if (leaveRoomBtn) leaveRoomBtn.classList.add('hidden');
     }
 }
 
@@ -956,6 +997,27 @@ function syncSeek(currentTime) {
     }
 }
 
+function requestRoomSync() {
+    if (!inRoom) {
+        showSyncIndicator('You are not in a room', 'error');
+        return;
+    }
+    
+    console.log('🔄 Requesting room sync (Vibe Check)');
+    socket.emit('request_sync', { room_id: currentRoom });
+    showSyncIndicator('Checking the vibe...', 'info');
+}
+
+function leaveRoom() {
+    if (!inRoom) {
+        showSyncIndicator('You are not in a room', 'error');
+        return;
+    }
+    
+    console.log('👋 Leaving room:', currentRoom);
+    socket.emit('leave_room_request', { room_id: currentRoom });
+}
+
 function showSyncIndicator(message, type = 'success') {
     let indicator = document.getElementById('syncIndicator');
     if (!indicator) {
@@ -981,7 +1043,7 @@ async function testApiConnection() {
     showLoading(true);
     
     try {
-        const response = await fetch('/test-api');
+        const response = await fetch('/api/test');
         const data = await response.json();
         
         console.log('API Test Results:', data);

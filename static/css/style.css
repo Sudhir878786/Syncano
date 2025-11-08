@@ -157,6 +157,31 @@ body {
     font-size: 16px;
 }
 
+.sidebar-room-btn.sync-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    color: var(--spotify-white);
+}
+
+.sidebar-room-btn.sync-btn:hover {
+    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.sidebar-room-btn.leave-btn {
+    background: transparent;
+    border: 1px solid #ff6b6b;
+    color: #ff6b6b;
+}
+
+.sidebar-room-btn.leave-btn:hover {
+    background: #ff6b6b;
+    color: var(--spotify-white);
+    transform: scale(1.02);
+    box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+}
+
 .room-info {
     margin-top: 12px;
     padding: 12px;
