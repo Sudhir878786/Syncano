@@ -57,8 +57,11 @@ def create_app(config_name='development'):
         app, 
         cors_allowed_origins=app.config['SOCKETIO_CORS_ALLOWED_ORIGINS'],
         async_mode='threading',
-        logger=False,
-        engineio_logger=False
+        logger=True,  # Enable logging to help debug Vercel issues
+        engineio_logger=True,
+        ping_timeout=60,
+        ping_interval=25,
+        max_http_buffer_size=1000000
     )
     
     # Register Socket.IO events

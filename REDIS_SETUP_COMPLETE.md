@@ -6,7 +6,7 @@ Your Redis connection is working perfectly locally with Upstash!
 
 **Redis URL (DO NOT SHARE PUBLICLY):**
 ```
-rediss://default:AXBXAAIncDJkYjQ4OWI0MjJkZjk0NDlmOWYxZGM0YmNhYzViZTQwZnAyMjg3NTk@new-heron-28759.upstash.io:6379
+r
 ```
 
 ---
@@ -21,7 +21,7 @@ rediss://default:AXBXAAIncDJkYjQ4OWI0MjJkZjk0NDlmOWYxZGM0YmNhYzViZTQwZnAyMjg3NTk
 4. Click **Add New Variable**
 5. Enter:
    - **Key:** `REDIS_URL`
-   - **Value:** `rediss://default:AXBXAAIncDJkYjQ4OWI0MjJkZjk0NDlmOWYxZGM0YmNhYzViZTQwZnAyMjg3NTk@new-heron-28759.upstash.io:6379`
+   - **Value:** `r`
    - **Environments:** ✓ Production, ✓ Preview, ✓ Development
 6. Click **Save**
 

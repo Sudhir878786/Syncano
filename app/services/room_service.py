@@ -114,7 +114,8 @@ class RoomService:
         Returns:
             Room data dictionary
         """
-        room_id = secrets.token_urlsafe(8)
+        # Generate 5-digit numeric room ID
+        room_id = str(secrets.randbelow(90000) + 10000)
         
         room_data = {
             'host': host_sid,

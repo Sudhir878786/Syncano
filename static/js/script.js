@@ -696,7 +696,37 @@ audioPlayer.addEventListener('pause', function() {
 
 // Socket.IO functionality
 function initializeSocket() {
-    socket = io();
+    // Configure Socket.IO for Vercel serverless environment
+    socket = io({
+        transports: ['polling', 'websocket'],  // Start with polling for Vercel
+        upgrade: true,
+        reconnection: true,
+        reconnectionDelay: 1000,
+        reconnectionAttempts: 5,
+        timeout: 20000,
+        forceNew: true
+    });
+    
+    // Connection status handlers
+    socket.on('connect', function() {
+        console.log('✅ Socket.IO connected:', socket.id);
+        showSyncIndicator('Connected to server', 'success');
+    });
+    
+    socket.on('connect_error', function(error) {
+        console.error('❌ Socket.IO connection error:', error);
+        showSyncIndicator('Connection error. Retrying...', 'error');
+    });
+    
+    socket.on('disconnect', function(reason) {
+        console.log('🔌 Socket.IO disconnected:', reason);
+        showSyncIndicator('Disconnected from server', 'error');
+    });
+    
+    socket.on('reconnect', function(attemptNumber) {
+        console.log('🔄 Socket.IO reconnected after', attemptNumber, 'attempts');
+        showSyncIndicator('Reconnected to server', 'success');
+    });
     
     socket.on('room_created', function(data) {
         currentRoom = data.room_id;
@@ -836,6 +866,14 @@ function createRoom() {
         return;
     }
     
+    if (!socket || !socket.connected) {
+        alert('Not connected to server. Please refresh and try again.');
+        console.error('Socket not connected:', socket);
+        return;
+    }
+    
+    console.log('📤 Creating room for user:', name);
+    showSyncIndicator('Creating room...', 'syncing');
     socket.emit('create_room', { username: name });
 }
 
@@ -849,11 +887,19 @@ function joinRoom() {
     }
     
     if (!roomId) {
-        alert('Please enter room ID');
+        alert('Please enter Room ID');
         return;
     }
     
-    socket.emit('join_room', { username: name, room_id: roomId });
+    if (!socket || !socket.connected) {
+        alert('Not connected to server. Please refresh and try again.');
+        console.error('Socket not connected:', socket);
+        return;
+    }
+    
+    console.log('📤 Joining room:', roomId, 'as user:', name);
+    showSyncIndicator('Joining room...', 'syncing');
+    socket.emit('join_room', { room_id: roomId, username: name });
 }
 
 function updateRoomUI() {
