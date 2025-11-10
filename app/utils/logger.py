@@ -14,12 +14,6 @@ def setup_logger(app):
     Args:
         app: Flask application instance
     """
-    # Create logs directory if it doesn't exist
-    log_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'logs')
-    os.makedirs(log_dir, exist_ok=True)
-    
-    log_file = os.path.join(log_dir, 'app.log')
-    
     # Set log level from config
     log_level = getattr(logging, app.config.get('LOG_LEVEL', 'INFO'))
     
@@ -29,29 +23,45 @@ def setup_logger(app):
         datefmt='%Y-%m-%d %H:%M:%S'
     )
     
-    # File handler with rotation
-    file_handler = RotatingFileHandler(
-        log_file,
-        maxBytes=app.config.get('LOG_MAX_BYTES', 10485760),
-        backupCount=app.config.get('LOG_BACKUP_COUNT', 5)
-    )
-    file_handler.setLevel(log_level)
-    file_handler.setFormatter(formatter)
-    
-    # Console handler
+    # Console handler (works on Vercel)
     console_handler = logging.StreamHandler()
     console_handler.setLevel(log_level)
     console_handler.setFormatter(formatter)
     
+    # Try to setup file logging if not on serverless platform
+    is_serverless = os.environ.get('VERCEL') or os.environ.get('AWS_LAMBDA_FUNCTION_NAME')
+    
+    if not is_serverless:
+        try:
+            # Create logs directory if it doesn't exist
+            log_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'logs')
+            os.makedirs(log_dir, exist_ok=True)
+            
+            log_file = os.path.join(log_dir, 'app.log')
+            
+            # File handler with rotation
+            file_handler = RotatingFileHandler(
+                log_file,
+                maxBytes=app.config.get('LOG_MAX_BYTES', 10485760),
+                backupCount=app.config.get('LOG_BACKUP_COUNT', 5)
+            )
+            file_handler.setLevel(log_level)
+            file_handler.setFormatter(formatter)
+            
+            # Configure app logger with file handler
+            app.logger.addHandler(file_handler)
+        except (OSError, PermissionError):
+            # If file logging fails, just use console
+            pass
+    
     # Configure app logger
     app.logger.setLevel(log_level)
-    app.logger.addHandler(file_handler)
     app.logger.addHandler(console_handler)
     
     # Configure root logger
     logging.basicConfig(
         level=log_level,
-        handlers=[file_handler, console_handler]
+        handlers=[console_handler]
     )
     
     app.logger.info(f"Logging initialized - Level: {logging.getLevelName(log_level)}")

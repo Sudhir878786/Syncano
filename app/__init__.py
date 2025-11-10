@@ -52,8 +52,14 @@ def create_app(config_name='development'):
     
     logger.info("Registered blueprints: main, api")
     
-    # Initialize Socket.IO
-    socketio.init_app(app, cors_allowed_origins=app.config['SOCKETIO_CORS_ALLOWED_ORIGINS'])
+    # Initialize Socket.IO with async_mode for Vercel compatibility
+    socketio.init_app(
+        app, 
+        cors_allowed_origins=app.config['SOCKETIO_CORS_ALLOWED_ORIGINS'],
+        async_mode='threading',
+        logger=False,
+        engineio_logger=False
+    )
     
     # Register Socket.IO events
     register_socketio_events(socketio)

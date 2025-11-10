@@ -1,6 +1,7 @@
-Flask==2.3.3
-requests==2.31.0
-gunicorn==21.2.0
+Flask==3.0.0
 flask-socketio==5.3.6
-eventlet==0.33.3
+python-socketio==5.10.0
+requests==2.31.0
 pyDes==2.0.1
+simple-websocket==1.0.0
+python-engineio==4.8.0
