@@ -42,7 +42,7 @@ def create_app(config_name='development'):
     
     # Initialize services
     app.jiosaavn_service = JioSaavnService(app.config)
-    app.room_service = RoomService()
+    app.room_service = RoomService(redis_url=app.config.get('REDIS_URL'))
     
     logger.info(f"Initialized services: JioSaavnService, RoomService")
     

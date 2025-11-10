@@ -29,6 +29,9 @@ class Config:
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = 'Lax'
     
+    # Redis Settings (for distributed room state)
+    REDIS_URL = os.environ.get('REDIS_URL', None)
+    
     # JioSaavn API Settings
     JIOSAAVN_BASE_URL = "https://www.jiosaavn.com/api.php"
     JIOSAAVN_DECRYPT_KEY = b"38346591"

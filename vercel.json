@@ -14,5 +14,6 @@
   ],
   "env": {
     "FLASK_ENV": "production"
-  }
+  },
+  "regions": ["bom1"]
 }

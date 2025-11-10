@@ -21,6 +21,8 @@ A production-ready collaborative music streaming application built with Flask an
 
 ## 🚀 Quick Start
 
+### Local Development
+
 1. **Clone or download this project**
 
 2. **Install Python dependencies:**
@@ -38,6 +40,18 @@ A production-ready collaborative music streaming application built with Flask an
    ```
    http://localhost:3001
    ```
+
+### Deploy to Production (Vercel)
+
+**⚠️ IMPORTANT:** For Vercel deployment, you **MUST** set up Redis for room synchronization.
+
+📖 **See [QUICK_FIX.md](QUICK_FIX.md) for 5-minute setup guide**
+📖 **See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed deployment instructions**
+
+**TL;DR:**
+1. Create free Redis database at [upstash.com](https://upstash.com)
+2. Add `REDIS_URL` to Vercel environment variables
+3. Push to GitHub (Vercel auto-deploys)
 
 ### Development vs Production
 
@@ -202,12 +216,13 @@ Music/
    - Check if the server is running
    - Try different search terms
 
-3. **Room sync issues**: 
-   - Click the "Vibe Check" button to manually resync
+3. **Room sync issues / "Room does not exist" error**: 
+   - **On Vercel**: You MUST configure Redis (see [QUICK_FIX.md](QUICK_FIX.md))
+   - **Locally**: Click the "Vibe Check" button to manually resync
    - Ensure all users are on the same network or have proper connectivity
    - Refresh all tabs and rejoin the room
    - Check browser console for Socket.IO errors
-   - Check logs in `logs/app.log` for server-side issues
+   - Check Vercel function logs or `logs/app.log` for server-side issues
 
 4. **Player not responding**: 
    - Refresh the page (Ctrl+R or Cmd+R)

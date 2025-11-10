@@ -5,3 +5,4 @@ requests==2.31.0
 pyDes==2.0.1
 simple-websocket==1.0.0
 python-engineio==4.8.0
+redis==5.0.1

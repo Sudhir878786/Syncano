@@ -1,21 +1,99 @@
 """
 Room Management Service
 Handles collaborative listening room state and operations.
+Uses Redis for shared state across serverless instances.
 """
 import secrets
 import time
+import json
+import os
 from typing import Dict, Any, Optional
 import logging
 
 logger = logging.getLogger(__name__)
 
+try:
+    import redis
+    REDIS_AVAILABLE = True
+except ImportError:
+    REDIS_AVAILABLE = False
+    logger.warning("Redis not available, falling back to in-memory storage")
+
 
 class RoomService:
     """Service for managing collaborative listening rooms."""
     
-    def __init__(self):
-        """Initialize room service with empty room storage."""
-        self.active_rooms: Dict[str, Dict[str, Any]] = {}
+    def __init__(self, redis_url: Optional[str] = None):
+        """
+        Initialize room service with Redis or in-memory storage.
+        
+        Args:
+            redis_url: Redis connection URL (for serverless/distributed environments)
+        """
+        self.redis_client = None
+        self.use_redis = False
+        
+        # Try to connect to Redis if URL provided
+        if redis_url and REDIS_AVAILABLE:
+            try:
+                self.redis_client = redis.from_url(
+                    redis_url,
+                    decode_responses=True,
+                    socket_connect_timeout=5,
+                    socket_timeout=5
+                )
+                # Test connection
+                self.redis_client.ping()
+                self.use_redis = True
+                logger.info("✓ Connected to Redis for distributed room state")
+            except Exception as e:
+                logger.warning(f"Failed to connect to Redis: {e}. Using in-memory storage.")
+                self.redis_client = None
+        
+        # Fallback to in-memory storage
+        if not self.use_redis:
+            self.active_rooms: Dict[str, Dict[str, Any]] = {}
+            logger.info("Using in-memory room storage (not suitable for Vercel)")
+    
+    def _get_room_key(self, room_id: str) -> str:
+        """Get Redis key for room data."""
+        return f"room:{room_id}"
+    
+    def _save_room(self, room_id: str, room_data: Dict[str, Any]):
+        """Save room data to Redis or memory."""
+        if self.use_redis:
+            try:
+                self.redis_client.setex(
+                    self._get_room_key(room_id),
+                    86400,  # 24 hour expiry
+                    json.dumps(room_data)
+                )
+            except Exception as e:
+                logger.error(f"Failed to save room {room_id} to Redis: {e}")
+        else:
+            self.active_rooms[room_id] = room_data
+    
+    def _get_room_data(self, room_id: str) -> Optional[Dict[str, Any]]:
+        """Get room data from Redis or memory."""
+        if self.use_redis:
+            try:
+                data = self.redis_client.get(self._get_room_key(room_id))
+                return json.loads(data) if data else None
+            except Exception as e:
+                logger.error(f"Failed to get room {room_id} from Redis: {e}")
+                return None
+        else:
+            return self.active_rooms.get(room_id)
+    
+    def _delete_room_data(self, room_id: str):
+        """Delete room data from Redis or memory."""
+        if self.use_redis:
+            try:
+                self.redis_client.delete(self._get_room_key(room_id))
+            except Exception as e:
+                logger.error(f"Failed to delete room {room_id} from Redis: {e}")
+        else:
+            self.active_rooms.pop(room_id, None)
     
     def create_room(self, host_sid: str, username: str) -> Dict[str, Any]:
         """
@@ -30,7 +108,7 @@ class RoomService:
         """
         room_id = secrets.token_urlsafe(8)
         
-        self.active_rooms[room_id] = {
+        room_data = {
             'host': host_sid,
             'users': {
                 host_sid: {
@@ -45,6 +123,8 @@ class RoomService:
             'playlist': [],
             'created_at': time.time()
         }
+        
+        self._save_room(room_id, room_data)
         
         logger.info(f"Room {room_id} created by {username} (SID: {host_sid})")
         
@@ -66,17 +146,18 @@ class RoomService:
         Returns:
             Room join data or None if room doesn't exist
         """
-        if room_id not in self.active_rooms:
+        room = self._get_room_data(room_id)
+        if not room:
             logger.warning(f"Attempt to join non-existent room: {room_id}")
             return None
-        
-        room = self.active_rooms[room_id]
         
         # Add user to room
         room['users'][user_sid] = {
             'username': username,
             'is_host': False
         }
+        
+        self._save_room(room_id, room)
         
         logger.info(f"{username} (SID: {user_sid}) joined room {room_id}")
         
@@ -87,7 +168,7 @@ class RoomService:
             'users': list(room['users'].values()),
             'current_song': room['current_song'],
             'is_playing': room['is_playing'],
-            'current_time': room['current_time'],
+            'current_time': self.get_current_playback_time(room_id),
             'playlist': room['playlist']
         }
     
@@ -102,10 +183,9 @@ class RoomService:
         Returns:
             Updated room data or None
         """
-        if room_id not in self.active_rooms:
+        room = self._get_room_data(room_id)
+        if not room:
             return None
-        
-        room = self.active_rooms[room_id]
         
         if user_sid not in room['users']:
             return None
@@ -126,6 +206,8 @@ class RoomService:
             room['users'][new_host_sid]['is_host'] = True
             room['host'] = new_host_sid
             
+            self._save_room(room_id, room)
+            
             logger.info(f"New host assigned in room {room_id}: {room['users'][new_host_sid]['username']}")
             
             return {
@@ -137,9 +219,11 @@ class RoomService:
         
         # Delete room if empty
         if not room['users']:
-            del self.active_rooms[room_id]
+            self._delete_room_data(room_id)
             logger.info(f"Room {room_id} deleted - no users remaining")
             return {'room_deleted': True, 'username': username}
+        
+        self._save_room(room_id, room)
         
         return {
             'room_deleted': False,
@@ -158,14 +242,16 @@ class RoomService:
         Returns:
             True if successful, False otherwise
         """
-        if room_id not in self.active_rooms:
+        room = self._get_room_data(room_id)
+        if not room:
             return False
         
-        room = self.active_rooms[room_id]
         room['current_song'] = song
         room['is_playing'] = True
         room['current_time'] = 0
         room['last_update'] = time.time()
+        
+        self._save_room(room_id, room)
         
         logger.debug(f"Song updated in room {room_id}: {song.get('title', 'Unknown')}")
         return True
@@ -182,13 +268,15 @@ class RoomService:
         Returns:
             True if successful, False otherwise
         """
-        if room_id not in self.active_rooms:
+        room = self._get_room_data(room_id)
+        if not room:
             return False
         
-        room = self.active_rooms[room_id]
         room['is_playing'] = is_playing
         room['current_time'] = current_time
         room['last_update'] = time.time()
+        
+        self._save_room(room_id, room)
         
         return True
     
@@ -203,12 +291,14 @@ class RoomService:
         Returns:
             True if successful, False otherwise
         """
-        if room_id not in self.active_rooms:
+        room = self._get_room_data(room_id)
+        if not room:
             return False
         
-        room = self.active_rooms[room_id]
         room['current_time'] = current_time
         room['last_update'] = time.time()
+        
+        self._save_room(room_id, room)
         
         return True
     
@@ -222,7 +312,7 @@ class RoomService:
         Returns:
             Room data or None
         """
-        return self.active_rooms.get(room_id)
+        return self._get_room_data(room_id)
     
     def get_current_playback_time(self, room_id: str) -> float:
         """
@@ -234,7 +324,7 @@ class RoomService:
         Returns:
             Current playback position in seconds
         """
-        room = self.active_rooms.get(room_id)
+        room = self._get_room_data(room_id)
         if not room:
             return 0.0
         
@@ -251,27 +341,43 @@ class RoomService:
     
     def room_exists(self, room_id: str) -> bool:
         """Check if room exists."""
-        return room_id in self.active_rooms
+        return self._get_room_data(room_id) is not None
     
     def get_all_rooms(self) -> Dict[str, Dict[str, Any]]:
         """Get all active rooms."""
-        return self.active_rooms
+        if self.use_redis:
+            try:
+                rooms = {}
+                for key in self.redis_client.scan_iter("room:*"):
+                    room_id = key.replace("room:", "")
+                    room_data = self._get_room_data(room_id)
+                    if room_data:
+                        rooms[room_id] = room_data
+                return rooms
+            except Exception as e:
+                logger.error(f"Failed to get all rooms from Redis: {e}")
+                return {}
+        else:
+            return self.active_rooms
     
     def cleanup_stale_rooms(self, max_age_hours: int = 24):
         """
         Clean up rooms older than specified age.
+        Note: Redis rooms auto-expire after 24 hours.
         
         Args:
             max_age_hours: Maximum room age in hours
         """
-        current_time = time.time()
-        max_age_seconds = max_age_hours * 3600
-        
-        stale_rooms = [
-            room_id for room_id, room in self.active_rooms.items()
-            if current_time - room.get('created_at', current_time) > max_age_seconds
-        ]
-        
-        for room_id in stale_rooms:
-            del self.active_rooms[room_id]
-            logger.info(f"Cleaned up stale room: {room_id}")
+        if not self.use_redis:
+            current_time = time.time()
+            max_age_seconds = max_age_hours * 3600
+            
+            stale_rooms = [
+                room_id for room_id, room in self.active_rooms.items()
+                if current_time - room.get('created_at', current_time) > max_age_seconds
+            ]
+            
+            for room_id in stale_rooms:
+                del self.active_rooms[room_id]
+                logger.info(f"Cleaned up stale room: {room_id}")
+        # Redis rooms auto-expire, no manual cleanup needed
