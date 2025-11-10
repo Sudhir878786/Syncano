@@ -36,12 +36,20 @@ class RoomService:
         # Try to connect to Redis if URL provided
         if redis_url and REDIS_AVAILABLE:
             try:
-                self.redis_client = redis.from_url(
-                    redis_url,
-                    decode_responses=True,
-                    socket_connect_timeout=5,
-                    socket_timeout=5
-                )
+                # Handle both redis:// and rediss:// (TLS) URLs
+                # Upstash requires SSL, so we need to handle that
+                connection_kwargs = {
+                    'decode_responses': True,
+                    'socket_connect_timeout': 5,
+                    'socket_timeout': 5
+                }
+                
+                # If using rediss:// (TLS), add SSL parameters for Upstash
+                if redis_url.startswith('rediss://'):
+                    connection_kwargs['ssl_cert_reqs'] = None
+                
+                self.redis_client = redis.from_url(redis_url, **connection_kwargs)
+                
                 # Test connection
                 self.redis_client.ping()
                 self.use_redis = True
