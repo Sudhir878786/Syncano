@@ -1,0 +1,231 @@
+/**
+ * Syncano - Main Application Entry Point
+ * A modern music streaming application with collaborative rooms
+ */
+
+import { AppState } from './modules/state.js';
+import { DOM } from './modules/dom.js';
+import { Player } from './modules/player.js';
+import { Search } from './modules/search.js';
+import { RoomManager } from './modules/room.js';
+import { LyricsManager } from './modules/lyrics.js';
+import { updateGreeting, debounce } from './modules/utils.js';
+import { API } from './modules/api.js';
+
+/**
+ * Initialize the application
+ */
+function initializeApp() {
+    console.log('🎵 Syncano - Initializing...');
+    
+    // Initialize DOM references
+    DOM.init();
+    console.log('📋 DOM initialized');
+    console.log('Search input:', DOM.searchInput);
+    console.log('Create room button:', DOM.createRoomBtn);
+    console.log('Join room button:', DOM.joinRoomBtn);
+    
+    // Initialize application state
+    AppState.init();
+    console.log('💾 State initialized');
+    
+    // Initialize Socket.IO for rooms
+    RoomManager.initializeSocket();
+    console.log('🔌 Socket.IO initialized');
+    
+    // Update greeting
+    updateGreeting();
+    
+    // Setup event listeners
+    setupEventListeners();
+    console.log('🎯 Event listeners attached');
+    
+    // Initialize volume
+    if (DOM.audioPlayer && DOM.volumeSlider) {
+        DOM.audioPlayer.volume = DOM.volumeSlider.value / 100;
+        Player.updateVolumeSliderBackground();
+    }
+    
+    console.log('✅ Syncano - Ready!');
+    console.log('📊 Available functions:', Object.keys(window.Syncano));
+}
+
+/**
+ * Setup all event listeners
+ */
+function setupEventListeners() {
+    // Search functionality
+    if (DOM.searchInput) {
+        console.log('✅ Attaching search input listeners');
+        DOM.searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                console.log('⏎ Enter pressed in search');
+                Search.performSearch();
+            }
+        });
+        
+        // Real-time search with debounce
+        const debouncedSearch = debounce(() => {
+            const query = DOM.searchInput.value.trim();
+            if (query.length >= 3) {
+                Search.performSearch();
+            }
+        }, 500);
+        
+        DOM.searchInput.addEventListener('input', debouncedSearch);
+    }
+    
+    // Test API button
+    const testApiBtn = document.getElementById('testApiBtn');
+    if (testApiBtn) {
+        testApiBtn.addEventListener('click', async () => {
+            try {
+                const result = await API.test();
+                console.log('API test result:', result);
+                alert(`API Status: ${result.status}\n${result.message}`);
+            } catch (error) {
+                console.error('API test failed:', error);
+                alert('API test failed: ' + error.message);
+            }
+        });
+    }
+    
+    // Room functionality
+    if (DOM.createRoomBtn) {
+        console.log('✅ Attaching create room listener');
+        DOM.createRoomBtn.addEventListener('click', () => {
+            console.log('🎪 Create room button clicked');
+            RoomManager.showCreateRoomModal();
+        });
+    } else {
+        console.warn('⚠️ Create room button not found!');
+    }
+    
+    if (DOM.joinRoomBtn) {
+        console.log('✅ Attaching join room listener');
+        DOM.joinRoomBtn.addEventListener('click', () => {
+            console.log('🚪 Join room button clicked');
+            RoomManager.showJoinRoomModal();
+        });
+    } else {
+        console.warn('⚠️ Join room button not found!');
+    }
+    
+    DOM.closeModal?.addEventListener('click', () => RoomManager.hideModal());
+    DOM.modalActionBtn?.addEventListener('click', () => RoomManager.handleModalAction());
+    
+    // Close modal on overlay click
+    if (DOM.roomModal) {
+        DOM.roomModal.addEventListener('click', (e) => {
+            if (e.target === DOM.roomModal || e.target.classList.contains('modal-overlay')) {
+                RoomManager.hideModal();
+            }
+        });
+    }
+    
+    // Room action buttons
+    const syncWithRoomBtn = document.getElementById('syncWithRoomBtn');
+    const leaveRoomBtn = document.getElementById('leaveRoomBtn');
+    syncWithRoomBtn?.addEventListener('click', () => RoomManager.requestRoomSync());
+    leaveRoomBtn?.addEventListener('click', () => RoomManager.leaveRoom());
+    
+    // Player controls
+    DOM.playPauseBtn?.addEventListener('click', () => Player.togglePlayPause());
+    DOM.prevBtn?.addEventListener('click', () => Player.playPrevious());
+    DOM.nextBtn?.addEventListener('click', () => Player.playNext());
+    
+    // Audio player events
+    if (DOM.audioPlayer) {
+        DOM.audioPlayer.addEventListener('loadedmetadata', () => Player.updateDuration());
+        DOM.audioPlayer.addEventListener('timeupdate', () => Player.updateProgress());
+        DOM.audioPlayer.addEventListener('ended', () => Player.playNext());
+        
+        DOM.audioPlayer.addEventListener('error', (e) => {
+            console.error('Audio error:', e);
+            alert('Failed to load audio. The song might not be available.');
+            AppState.isPlaying = false;
+            Player.updatePlayPauseButton();
+        });
+        
+        DOM.audioPlayer.addEventListener('loadstart', () => {
+            AppState.isPlaying = false;
+            Player.updatePlayPauseButton();
+        });
+        
+        DOM.audioPlayer.addEventListener('play', () => {
+            if (!AppState.isSyncing) {
+                AppState.isPlaying = true;
+                Player.updatePlayPauseButton();
+            }
+        });
+        
+        DOM.audioPlayer.addEventListener('pause', () => {
+            if (!AppState.isSyncing) {
+                AppState.isPlaying = false;
+                Player.updatePlayPauseButton();
+            }
+        });
+    }
+    
+    // Progress slider
+    DOM.progressSlider?.addEventListener('input', () => Player.seekToPosition());
+    
+    // Volume controls
+    DOM.volumeSlider?.addEventListener('input', () => Player.updateVolume());
+    DOM.volumeBtn?.addEventListener('click', () => Player.toggleMute());
+    
+    // Like current song
+    DOM.likeCurrentSongBtn?.addEventListener('click', () => Player.toggleLikeCurrentSong());
+    
+    // Lyrics button
+    DOM.lyricsBtn?.addEventListener('click', () => LyricsManager.toggleLyricsTerminal());
+    DOM.closeLyricsBtn?.addEventListener('click', () => LyricsManager.hideLyricsTerminal());
+    
+    // Navigation items
+    const navItems = document.querySelectorAll('.nav-item');
+    navItems.forEach(item => {
+        item.addEventListener('click', function(e) {
+            e.preventDefault();
+            navItems.forEach(i => {
+                i.classList.remove('active', 'bg-spotify-gray');
+            });
+            this.classList.add('active', 'bg-spotify-gray');
+            
+            const section = this.dataset.section;
+            if (section === 'search') {
+                DOM.searchInput?.focus();
+            } else if (section === 'liked') {
+                Search.showLikedSongs();
+            } else if (section === 'home') {
+                Search.showHome();
+            }
+        });
+    });
+    
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+        if (e.code === 'Space' && e.target.tagName !== 'INPUT') {
+            e.preventDefault();
+            Player.togglePlayPause();
+        } else if (e.code === 'ArrowLeft' && e.ctrlKey) {
+            e.preventDefault();
+            Player.playPrevious();
+        } else if (e.code === 'ArrowRight' && e.ctrlKey) {
+            e.preventDefault();
+            Player.playNext();
+        }
+    });
+}
+
+// Initialize app when DOM is ready
+document.addEventListener('DOMContentLoaded', initializeApp);
+
+// Export for debugging purposes
+window.Syncano = {
+    AppState,
+    Player,
+    Search,
+    RoomManager,
+    LyricsManager,
+    API
+};

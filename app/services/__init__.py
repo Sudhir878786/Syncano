@@ -1,5 +1,5 @@
 """Services package initialization."""
-from .jiosaavn_service import JioSaavnService
+from .music_service import MusicService
 from .room_service import RoomService
 
-__all__ = ['JioSaavnService', 'RoomService']
+__all__ = ['MusicService', 'RoomService']

@@ -1,6 +1,6 @@
 # 🎧 Syncano - Listen together, anywhere
 
-A production-ready collaborative music streaming application built with Flask and Socket.IO, featuring real-time synchronized playback and built-in JioSaavn API integration.
+A production-ready collaborative music streaming application built with Flask and Socket.IO, featuring real-time synchronized playback and modular architecture.
 
 ## ✨ Features
 
@@ -8,15 +8,18 @@ A production-ready collaborative music streaming application built with Flask an
 - 🎧 **High-Quality Streaming** - Stream music directly in your browser
 - 🎮 **Full Player Controls** - Play, pause, next, previous, seek, volume
 - 💚 **Liked Songs** - Save your favorite songs with persistent storage
+- 📄 **Lyrics Display** - Terminal-style lyrics display with hacker aesthetic
 - 👥 **Collaborative Rooms** - Listen to music together in real-time
 - 🔄 **Real-time Sync** - All users in a room hear the same song simultaneously
 - ✨ **Vibe Check** - Manual sync button to instantly match room playback position
 - 🚪 **Leave Room** - Clean room exit with automatic host reassignment
 - 👑 **Host Controls** - Room creator controls playback for everyone
-- 📱 **Responsive Design** - Works seamlessly on mobile and desktop
-- ⌨️ **Keyboard Shortcuts** - Quick controls for power users
-- 🎨 **Spotify-Inspired UI** - Modern, dark theme interface
-- 🚀 **Built-in API** - No external server dependencies
+- 📱 **Responsive Design** - Works seamlessly on mobile, tablet, and desktop
+- 🎯 **Spotify-like UI/UX** - Modern, polished interface with smooth animations
+- 🎨 **Spotify-Inspired UI** - Modern, dark theme interface with full responsiveness
+- 🚀 **Modular Architecture** - Clean, production-ready code structure
+- 📐 **Progressive Enhancement** - Optimized for all screen sizes (320px to 4K+)
+- 👆 **Touch-Optimized** - 44px minimum touch targets for mobile devices
 
 
 ## 🚀 Quick Start
@@ -111,11 +114,15 @@ gunicorn --worker-class eventlet -w 1 --bind 0.0.0.0:3001 "app:create_app('produ
 ## 📁 Project Structure
 
 ```
-Music/
+Syncano/
 ├── run.py                      # Application entry point
 ├── config.py                   # Configuration management (dev/prod/test)
 ├── requirements.txt            # Python dependencies
 ├── ARCHITECTURE.md             # Detailed architecture documentation
+├── RESPONSIVE_DESIGN.md        # Comprehensive responsive design guide
+├── BREAKPOINTS_GUIDE.md        # Visual breakpoint reference
+├── RESTRUCTURING.md            # Code restructuring changelog
+├── UPGRADE_COMPLETE.md         # Upgrade guide for developers
 ├── .env.example               # Environment variables template
 ├── .gitignore                 # Git ignore patterns
 ├── app/
@@ -124,20 +131,29 @@ Music/
 │   │   ├── main.py            # Main routes (index, health)
 │   │   └── api.py             # API endpoints (/api/search, /api/song, etc.)
 │   ├── services/
-│   │   ├── jiosaavn_service.py  # JioSaavn API integration
-│   │   └── room_service.py      # Room management logic
+│   │   ├── music_service.py    # Music API integration
+│   │   └── room_service.py     # Room management logic
 │   ├── socketio_handlers/
-│   │   └── room_events.py       # Socket.IO event handlers
+│   │   └── room_events.py      # Socket.IO event handlers
 │   └── utils/
-│       ├── helpers.py           # Utility functions (encryption, formatting)
-│       └── logger.py            # Logging configuration
+│       ├── helpers.py          # Utility functions (encryption, formatting)
+│       └── logger.py           # Logging configuration
 ├── templates/
 │   └── index.html              # Main HTML template with Spotify-inspired UI
 ├── static/
 │   ├── css/
-│   │   └── style.css           # Modern dark theme styling
+│   │   └── style.css           # Fully responsive Spotify-like styling (2660+ lines)
 │   ├── js/
-│   │   └── script.js           # Frontend logic, Socket.IO, Vibe Check
+│   │   ├── app.js              # Main application entry point
+│   │   └── modules/            # Modular JavaScript architecture
+│   │       ├── api.js          # API client
+│   │       ├── dom.js          # DOM element management
+│   │       ├── lyrics.js       # Lyrics functionality
+│   │       ├── player.js       # Music player controls
+│   │       ├── room.js         # Room/Socket.IO logic
+│   │       ├── search.js       # Search functionality
+│   │       ├── state.js        # Application state
+│   │       └── utils.js        # Utility functions
 │   └── images/                 # Image assets
 └── logs/                       # Application logs (rotating)
 ```
@@ -172,28 +188,39 @@ Music/
 - `room_created` - Room creation confirmation
 - `joined_room` - Room join confirmation
 - `user_joined` - New user joined notification
-- `user_left` - User left notification
-- `song_changed` - Song update in room
-- `playback_changed` - Playback state change
-- `seek_changed` - Seek position update
-- `sync_state` - Current room state (response to Vibe Check)
-- `room_left` - Room exit confirmation
-- `new_host` - New host assignment notification
-- `error` - Error messages
-
 ## 🛠️ Technology Stack
 
-- **Backend**: Python Flask with Application Factory Pattern
+### Backend
+- **Framework**: Python Flask with Application Factory Pattern
 - **Architecture**: Modular structure (Services, Routes, Handlers)
 - **Real-time**: Flask-SocketIO for WebSocket communication
-- **API**: Built-in JioSaavn API integration with encryption
+- **API**: Music API integration with encryption
 - **Configuration**: Environment-based configs (Development/Production/Testing)
 - **Logging**: Rotating file handler with configurable levels
-- **Frontend**: HTML5, CSS3, Vanilla JavaScript
+
+### Frontend
+- **Structure**: ES6 Modules with clean separation of concerns
+- **Modules**: API, DOM, Player, Search, Room, Lyrics, State, Utils
 - **Audio**: HTML5 Audio API
 - **Storage**: LocalStorage for liked songs
-- **Styling**: Custom CSS with Spotify-inspired design
-- **Security**: HTTP security headers, CORS configuration
+- **Styling**: Custom CSS with Spotify-inspired design + Full responsive layout
+- **Responsive**: 8 breakpoints (320px to 4K+) with progressive enhancement
+- **Touch**: Touch-optimized with 44px minimum tap targets (WCAG AA)
+- **Real-time**: Socket.IO client for collaborative features
+
+### Infrastructure
+- **Deployment**: Vercel serverless functions
+- **State**: Redis (Upstash) for distributed room state
+- **Security**: HTTP security headers, CORS configurationHandlers)
+- **Real-time**: Flask-SocketIO for WebSocket communication
+## 📝 Notes
+
+- This application uses a music streaming API for educational purposes
+- Audio quality: 320kbps (when available), fallback to 160kbps
+- Some songs might not be available due to regional restrictions
+- Liked songs are stored in browser's LocalStorage (persistent)
+- Room sessions are temporary and cleared when all users leave
+- Modular architecture for easy maintenance and scalability
 
 ## 📝 Notes
 
@@ -239,15 +266,19 @@ Music/
 - [ ] Playlist creation and management
 - [ ] User authentication and profiles
 - [ ] Chat in rooms
-- [ ] Queue management
-- [ ] Persistent room storage (database)
-- [ ] Room history and analytics
-- [ ] Mobile app (React Native)
-- [ ] Lyrics display while playing
-- [ ] Audio visualizer
-- [ ] Cross-device synchronization
-- [ ] Advanced room permissions
+- [ ] Gesture controls for mobile (swipe to skip)
+- [ ] PWA support for offline mode
+- [ ] Dark/light theme toggle
+- [ ] Virtual scrolling for large lists
+## 📜 License
 
+This project is for educational purposes only.
+
+---
+
+**Made with ❤️ for music lovers everywhere**
+
+🎧 **Syncano** - *One track, one tempo — infinite listeners.*
 ## 📜 License
 
 This project is for educational purposes only. JioSaavn and its API are property of their respective owners.

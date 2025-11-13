@@ -24,7 +24,7 @@ def create_app(config_name='development'):
     """
     from config import get_config
     from .utils import setup_logger
-    from .services import JioSaavnService, RoomService
+    from .services import MusicService, RoomService
     from .routes import main_bp, api_bp
     from .socketio_handlers import register_socketio_events
     
@@ -41,10 +41,10 @@ def create_app(config_name='development'):
     setup_logger(app)
     
     # Initialize services
-    app.jiosaavn_service = JioSaavnService(app.config)
+    app.music_service = MusicService(app.config)
     app.room_service = RoomService(redis_url=app.config.get('REDIS_URL'))
     
-    logger.info(f"Initialized services: JioSaavnService, RoomService")
+    logger.info(f"Initialized services: MusicService, RoomService")
     
     # Register blueprints
     app.register_blueprint(main_bp)

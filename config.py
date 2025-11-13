@@ -32,17 +32,17 @@ class Config:
     # Redis Settings (for distributed room state)
     REDIS_URL = os.environ.get('REDIS_URL', None)
     
-    # JioSaavn API Settings
-    JIOSAAVN_BASE_URL = "https://www.jiosaavn.com/api.php"
-    JIOSAAVN_DECRYPT_KEY = b"38346591"
-    JIOSAAVN_REQUEST_TIMEOUT = 15
+    # Music API Settings
+    MUSIC_API_BASE_URL = "https://www.jiosaavn.com/api.php"
+    MUSIC_API_DECRYPT_KEY = b"38346591"
+    MUSIC_API_REQUEST_TIMEOUT = 15
     
     # API Endpoints
-    JIOSAAVN_SEARCH_ENDPOINT = f"{JIOSAAVN_BASE_URL}?__call=autocomplete.get&_format=json&_marker=0&cc=in&includeMetaTags=1&query="
-    JIOSAAVN_SONG_DETAILS_ENDPOINT = f"{JIOSAAVN_BASE_URL}?__call=song.getDetails&cc=in&_marker=0%3F_marker%3D0&_format=json&pids="
-    JIOSAAVN_ALBUM_DETAILS_ENDPOINT = f"{JIOSAAVN_BASE_URL}?__call=content.getAlbumDetails&_format=json&cc=in&_marker=0%3F_marker%3D0&albumid="
-    JIOSAAVN_PLAYLIST_DETAILS_ENDPOINT = f"{JIOSAAVN_BASE_URL}?__call=playlist.getDetails&_format=json&cc=in&_marker=0%3F_marker%3D0&listid="
-    JIOSAAVN_LYRICS_ENDPOINT = f"{JIOSAAVN_BASE_URL}?__call=lyrics.getLyrics&ctx=web6dot0&api_version=4&_format=json&_marker=0%3F_marker%3D0&lyrics_id="
+    MUSIC_API_SEARCH_ENDPOINT = f"{MUSIC_API_BASE_URL}?__call=autocomplete.get&_format=json&_marker=0&cc=in&includeMetaTags=1&query="
+    MUSIC_API_SONG_DETAILS_ENDPOINT = f"{MUSIC_API_BASE_URL}?__call=song.getDetails&cc=in&_marker=0%3F_marker%3D0&_format=json&pids="
+    MUSIC_API_ALBUM_DETAILS_ENDPOINT = f"{MUSIC_API_BASE_URL}?__call=content.getAlbumDetails&_format=json&cc=in&_marker=0%3F_marker%3D0&albumid="
+    MUSIC_API_PLAYLIST_DETAILS_ENDPOINT = f"{MUSIC_API_BASE_URL}?__call=playlist.getDetails&_format=json&cc=in&_marker=0%3F_marker%3D0&listid="
+    MUSIC_API_LYRICS_ENDPOINT = f"{MUSIC_API_BASE_URL}?__call=lyrics.getLyrics&ctx=web6dot0&api_version=4&_format=json&_marker=0%3F_marker%3D0&lyrics_id="
     
     # Application Settings
     MAX_SEARCH_RESULTS = 20

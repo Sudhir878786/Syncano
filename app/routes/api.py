@@ -1,5 +1,5 @@
 """
-API routes for JioSaavn integration.
+API routes for music streaming integration.
 """
 from flask import Blueprint, request, jsonify, current_app
 import logging
@@ -10,9 +10,9 @@ logger = logging.getLogger(__name__)
 api_bp = Blueprint('api', __name__, url_prefix='/api')
 
 
-def get_jiosaavn_service():
-    """Get JioSaavn service instance from app context."""
-    return current_app.jiosaavn_service
+def get_music_service():
+    """Get music service instance from app context."""
+    return current_app.music_service
 
 
 @api_bp.route('/search')
@@ -36,7 +36,7 @@ def search():
         
         logger.info(f"Search request: '{query}'")
         
-        service = get_jiosaavn_service()
+        service = get_music_service()
         results = service.search_songs(query, include_lyrics=include_lyrics, limit=limit)
         
         return jsonify({
@@ -57,7 +57,7 @@ def get_song(song_id):
     Get detailed information about a song.
     
     Path Parameters:
-        song_id: JioSaavn song ID
+        song_id: Song ID
         
     Query Parameters:
         lyrics: Include lyrics (optional, default: false)
@@ -65,7 +65,7 @@ def get_song(song_id):
     try:
         include_lyrics = request.args.get('lyrics', 'false').lower() == 'true'
         
-        service = get_jiosaavn_service()
+        service = get_music_service()
         song_data = service.get_song_details(song_id, include_lyrics=include_lyrics)
         
         if song_data:
@@ -85,7 +85,7 @@ def get_album(album_id):
     Get album details with all songs.
     
     Path Parameters:
-        album_id: JioSaavn album ID
+        album_id: Album ID
         
     Query Parameters:
         lyrics: Include lyrics for songs (optional, default: false)
@@ -93,7 +93,7 @@ def get_album(album_id):
     try:
         include_lyrics = request.args.get('lyrics', 'false').lower() == 'true'
         
-        service = get_jiosaavn_service()
+        service = get_music_service()
         album_data = service.get_album_details(album_id, include_lyrics=include_lyrics)
         
         if album_data:
@@ -113,7 +113,7 @@ def get_playlist(playlist_id):
     Get playlist details with all songs.
     
     Path Parameters:
-        playlist_id: JioSaavn playlist ID
+        playlist_id: Playlist ID
         
     Query Parameters:
         lyrics: Include lyrics for songs (optional, default: false)
@@ -121,7 +121,7 @@ def get_playlist(playlist_id):
     try:
         include_lyrics = request.args.get('lyrics', 'false').lower() == 'true'
         
-        service = get_jiosaavn_service()
+        service = get_music_service()
         playlist_data = service.get_playlist_details(playlist_id, include_lyrics=include_lyrics)
         
         if playlist_data:
@@ -141,10 +141,10 @@ def get_lyrics(song_id):
     Get lyrics for a song.
     
     Path Parameters:
-        song_id: JioSaavn song ID
+        song_id: Song ID
     """
     try:
-        service = get_jiosaavn_service()
+        service = get_music_service()
         lyrics = service.get_lyrics(song_id)
         
         return jsonify({
@@ -167,12 +167,12 @@ def get_lyrics(song_id):
 def test_api():
     """Test API functionality."""
     try:
-        service = get_jiosaavn_service()
+        service = get_music_service()
         results = service.search_songs("test", limit=5)
         
         return jsonify({
             'status': 'success',
-            'message': 'Built-in JioSaavn API is working',
+            'message': 'Music API is working',
             'test_results': len(results),
             'sample': results[0] if results else None
         })

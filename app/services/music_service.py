@@ -1,6 +1,6 @@
 """
-JioSaavn API Service
-Handles all interactions with JioSaavn API endpoints.
+Music API Service
+Handles all interactions with music API endpoints for Syncano.
 """
 import requests
 import json
@@ -14,19 +14,19 @@ from ..utils import (
 logger = logging.getLogger(__name__)
 
 
-class JioSaavnService:
-    """Service class for JioSaavn API operations."""
+class MusicService:
+    """Service class for music API operations."""
     
     def __init__(self, config):
         """
-        Initialize JioSaavn service with configuration.
+        Initialize music service with configuration.
         
         Args:
             config: Application configuration object (Flask config dict)
         """
         self.config = config
-        self.timeout = config['JIOSAAVN_REQUEST_TIMEOUT']
-        self.decrypt_key = config['JIOSAAVN_DECRYPT_KEY']
+        self.timeout = config['MUSIC_API_REQUEST_TIMEOUT']
+        self.decrypt_key = config['MUSIC_API_DECRYPT_KEY']
         
     def format_song_data(self, data: Dict[str, Any], include_lyrics: bool = False) -> Dict[str, Any]:
         """
@@ -92,7 +92,7 @@ class JioSaavnService:
     def search_songs(self, query: str, include_lyrics: bool = False, 
                     get_details: bool = True, limit: int = None) -> List[Dict[str, Any]]:
         """
-        Search for songs on JioSaavn.
+        Search for songs.
         
         Args:
             query: Search query string
@@ -112,7 +112,7 @@ class JioSaavnService:
                     return [song] if song else []
             
             # Perform search
-            search_url = f"{self.config['JIOSAAVN_SEARCH_ENDPOINT']}{query}"
+            search_url = f"{self.config['MUSIC_API_SEARCH_ENDPOINT']}{query}"
             response = requests.get(search_url, timeout=self.timeout)
             response.raise_for_status()
             
@@ -159,7 +159,7 @@ class JioSaavnService:
             Song data dictionary or None
         """
         try:
-            url = f"{self.config['JIOSAAVN_SONG_DETAILS_ENDPOINT']}{song_id}"
+            url = f"{self.config['MUSIC_API_SONG_DETAILS_ENDPOINT']}{song_id}"
             response = requests.get(url, timeout=self.timeout)
             response.raise_for_status()
             
@@ -188,7 +188,7 @@ class JioSaavnService:
             Album data dictionary or None
         """
         try:
-            url = f"{self.config['JIOSAAVN_ALBUM_DETAILS_ENDPOINT']}{album_id}"
+            url = f"{self.config['MUSIC_API_ALBUM_DETAILS_ENDPOINT']}{album_id}"
             response = requests.get(url, timeout=self.timeout)
             response.raise_for_status()
             
@@ -224,7 +224,7 @@ class JioSaavnService:
             Playlist data dictionary or None
         """
         try:
-            url = f"{self.config['JIOSAAVN_PLAYLIST_DETAILS_ENDPOINT']}{playlist_id}"
+            url = f"{self.config['MUSIC_API_PLAYLIST_DETAILS_ENDPOINT']}{playlist_id}"
             response = requests.get(url, timeout=self.timeout)
             response.raise_for_status()
             
@@ -257,7 +257,7 @@ class JioSaavnService:
             Lyrics text or empty string
         """
         try:
-            url = f"{self.config['JIOSAAVN_LYRICS_ENDPOINT']}{song_id}"
+            url = f"{self.config['MUSIC_API_LYRICS_ENDPOINT']}{song_id}"
             response = requests.get(url, timeout=self.timeout)
             response.raise_for_status()
             
@@ -269,7 +269,7 @@ class JioSaavnService:
             return ""
     
     def _extract_song_id(self, url: str) -> Optional[str]:
-        """Extract song ID from JioSaavn URL."""
+        """Extract song ID from music service URL."""
         try:
             response = requests.get(url, timeout=self.timeout)
             text = response.text
