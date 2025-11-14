@@ -1,77 +1,91 @@
 # 🎧 Syncano - Listen together, anywhere
 
-A production-ready collaborative music streaming application built with Flask and Socket.IO, featuring real-time synchronized playback and modular architecture.
+A production-ready collaborative music streaming application with real-time synchronized playback. Built with a modern split architecture: **Vercel (frontend) + Render (backend) + Upstash Redis (database)**.
 
 ## ✨ Features
 
-- 🎵 **Music Search** - Search for songs, artists, and albums
-- 🎧 **High-Quality Streaming** - Stream music directly in your browser
-- 🎮 **Full Player Controls** - Play, pause, next, previous, seek, volume
-- 💚 **Liked Songs** - Save your favorite songs with persistent storage
-- 📄 **Lyrics Display** - Terminal-style lyrics display with hacker aesthetic
-- 👥 **Collaborative Rooms** - Listen to music together in real-time
-- 🔄 **Real-time Sync** - All users in a room hear the same song simultaneously
-- ✨ **Vibe Check** - Manual sync button to instantly match room playback position
-- 🚪 **Leave Room** - Clean room exit with automatic host reassignment
+- 🎵 **Music Search & Streaming** - Search and stream high-quality music
+- 🎮 **Full Player Controls** - Play, pause, skip, seek, volume control
+- 💚 **Liked Songs** - Persistent favorites with localStorage
+- 📄 **Lyrics Display** - Terminal-style lyrics with synchronized scrolling
+- 👥 **Collaborative Rooms** - Listen together in real-time with friends
+- 🔄 **Perfect Sync** - All users hear the same song at the same time
+- ✨ **Vibe Check** - One-click sync to match room playback
 - 👑 **Host Controls** - Room creator controls playback for everyone
-- 📱 **Responsive Design** - Works seamlessly on mobile, tablet, and desktop
-- 🎯 **Spotify-like UI/UX** - Modern, polished interface with smooth animations
-- 🎨 **Spotify-Inspired UI** - Modern, dark theme interface with full responsiveness
-- 🚀 **Modular Architecture** - Clean, production-ready code structure
-- 📐 **Progressive Enhancement** - Optimized for all screen sizes (320px to 4K+)
-- 👆 **Touch-Optimized** - 44px minimum touch targets for mobile devices
+- 📱 **Responsive Design** - Works on mobile, tablet, and desktop
+- 🎨 **Spotify-Inspired UI** - Modern dark theme with smooth animations
+- 🚀 **Production-Ready** - Split architecture for scalability
+- 💰 **Zero Cost** - Deploy for free on Vercel, Render, and Upstash
 
+## 🏗️ Architecture
+
+```
+┌──────────────┐     ┌──────────────┐     ┌─────────────┐
+│   Vercel     │────→│    Render    │────→│   Upstash   │
+│  (Frontend)  │ API │  (Backend)   │ DB  │   (Redis)   │
+│Static Files  │ WSS │  Socket.IO   │     │ Room State  │
+└──────────────┘     └──────────────┘     └─────────────┘
+```
+
+- **Frontend (Vercel)**: Static HTML/CSS/JS served from edge network
+- **Backend (Render)**: Flask + Socket.IO with persistent WebSocket support
+- **Database (Upstash Redis)**: Serverless Redis for room state persistence
 
 ## 🚀 Quick Start
 
 ### Local Development
 
-1. **Clone or download this project**
-
-2. **Install Python dependencies:**
+1. **Install dependencies:**
    ```bash
    pip install -r requirements.txt
    ```
 
-3. **Run the application:**
+2. **Set up environment:**
+   ```bash
+   cp .env.example .env
+   # Edit .env with your settings
+   ```
+
+3. **Run the backend:**
    ```bash
    python run.py
    ```
-   The server will start on http://localhost:3001
+   Server starts at `http://localhost:10000`
 
-4. **Open your browser and go to:**
+4. **Open in browser:**
    ```
-   http://localhost:3001
+   http://localhost:10000/templates/index.html
    ```
 
-### Deploy to Production (Vercel)
+📖 **See [QUICKSTART.md](QUICKSTART.md) for detailed local setup**
 
-**⚠️ IMPORTANT:** For Vercel deployment, you **MUST** set up Redis for room synchronization.
+### Production Deployment
 
-📖 **See [QUICK_FIX.md](QUICK_FIX.md) for 5-minute setup guide**
-📖 **See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed deployment instructions**
+Deploy to production in 3 steps:
 
-**TL;DR:**
-1. Create free Redis database at [upstash.com](https://upstash.com)
-2. Add `REDIS_URL` to Vercel environment variables
-3. Push to GitHub (Vercel auto-deploys)
+1. **Setup Upstash Redis** (2 minutes)
+2. **Deploy Backend to Render** (5 minutes)
+3. **Deploy Frontend to Vercel** (3 minutes)
 
-### Development vs Production
+📖 **See [DEPLOYMENT.md](DEPLOYMENT.md) for complete deployment guide**
+## 🧪 Testing
 
-**Development Mode** (default):
+Test your deployment locally before going to production:
+
 ```bash
+# Start the backend
 python run.py
+
+# In another terminal, run tests
+python test_deployment.py
 ```
 
-**Production Mode**:
-```bash
-FLASK_ENV=production python run.py
-```
-
-**Production with Gunicorn**:
-```bash
-gunicorn --worker-class eventlet -w 1 --bind 0.0.0.0:3001 "app:create_app('production')"
-```
+This will test:
+- ✓ Health check endpoint
+- ✓ API functionality
+- ✓ Search endpoint
+- ✓ CORS configuration
+- ✓ Redis connection (if configured)
 
 ## 📖 How to Use
 
@@ -115,21 +129,23 @@ gunicorn --worker-class eventlet -w 1 --bind 0.0.0.0:3001 "app:create_app('produ
 
 ```
 Syncano/
-├── run.py                      # Application entry point
-├── config.py                   # Configuration management (dev/prod/test)
+├── run.py                      # Application entry point (development)
+├── wsgi.py                     # WSGI entry point (production)
+├── config.py                   # Configuration (CORS, Redis, etc.)
 ├── requirements.txt            # Python dependencies
-├── ARCHITECTURE.md             # Detailed architecture documentation
-├── RESPONSIVE_DESIGN.md        # Comprehensive responsive design guide
-├── BREAKPOINTS_GUIDE.md        # Visual breakpoint reference
-├── RESTRUCTURING.md            # Code restructuring changelog
-├── UPGRADE_COMPLETE.md         # Upgrade guide for developers
-├── .env.example               # Environment variables template
-├── .gitignore                 # Git ignore patterns
+├── render.yaml                 # Render deployment config
+├── vercel.json                 # Vercel deployment config
+├── Procfile                    # Gunicorn configuration
+├── .env.example                # Environment variables template
+├── DEPLOYMENT.md               # 📖 Complete deployment guide
+├── QUICKSTART.md               # 📖 Local development guide
+├── MIGRATION_SUMMARY.md        # 📖 Architecture changes
+├── test_deployment.py          # Deployment testing script
 ├── app/
-│   ├── __init__.py            # Application factory
+│   ├── __init__.py             # App factory + CORS + Socket.IO
 │   ├── routes/
-│   │   ├── main.py            # Main routes (index, health)
-│   │   └── api.py             # API endpoints (/api/search, /api/song, etc.)
+│   │   ├── main.py             # Main routes (index, health)
+│   │   └── api.py              # API endpoints (/api/search, etc.)
 │   ├── services/
 │   │   ├── music_service.py    # Music API integration
 │   │   └── room_service.py     # Room management logic

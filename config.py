@@ -16,12 +16,17 @@ class Config:
     
     # Server Settings
     HOST = os.environ.get('HOST', '0.0.0.0')
-    PORT = int(os.environ.get('PORT', 3001))
+    PORT = int(os.environ.get('PORT', 10000))  # Render default port
+    
+    # CORS Settings for Vercel frontend + Render backend
+    FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:5173')
+    BACKEND_URL = os.environ.get('BACKEND_URL', 'http://localhost:10000')
     
     # Socket.IO Settings
     SOCKETIO_CORS_ALLOWED_ORIGINS = os.environ.get('CORS_ORIGINS', '*')
     SOCKETIO_PING_TIMEOUT = 60
     SOCKETIO_PING_INTERVAL = 25
+    SOCKETIO_ASYNC_MODE = 'eventlet'  # Required for Render with persistent connections
     
     # Session Settings
     PERMANENT_SESSION_LIFETIME = timedelta(hours=24)
@@ -29,8 +34,9 @@ class Config:
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = 'Lax'
     
-    # Redis Settings (for distributed room state)
+    # Redis Settings (Upstash Redis for distributed room state)
     REDIS_URL = os.environ.get('REDIS_URL', None)
+    REDIS_SSL = os.environ.get('REDIS_SSL', 'true').lower() == 'true'
     
     # Music API Settings
     MUSIC_API_BASE_URL = "https://www.jiosaavn.com/api.php"
@@ -63,10 +69,16 @@ class DevelopmentConfig(Config):
 
 
 class ProductionConfig(Config):
-    """Production environment configuration."""
+    """Production environment configuration for Render backend."""
     DEBUG = False
     SESSION_COOKIE_SECURE = True
-    LOG_LEVEL = 'WARNING'
+    LOG_LEVEL = 'INFO'
+    
+    # Production CORS - allow Vercel frontend
+    SOCKETIO_CORS_ALLOWED_ORIGINS = os.environ.get(
+        'CORS_ORIGINS', 
+        'https://*.vercel.app'
+    )
 
 
 class TestingConfig(Config):

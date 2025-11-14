@@ -4,6 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Syncano - Listen together, anywhere</title>
+    
+    <!-- Backend URL Configuration - injected at build time for Vercel -->
+    <script>
+        // Set backend URL from environment variable or use production default
+        window.BACKEND_URL = '{{ backend_url }}' || 'https://your-backend.onrender.com';
+        console.log('🔧 Backend URL configured:', window.BACKEND_URL);
+    </script>
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {

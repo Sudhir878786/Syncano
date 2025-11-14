@@ -1,0 +1,45 @@
+services:
+  # Syncano Backend - Socket.IO Server on Render
+  - type: web
+    name: syncano-backend
+    env: python
+    region: oregon  # Choose region closest to your users
+    plan: free
+    branch: main  # or your default branch
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn --worker-class eventlet -w 1 --bind 0.0.0.0:10000 --timeout 120 "run:app"
+    
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      
+      - key: SECRET_KEY
+        generateValue: true
+      
+      - key: PORT
+        value: 10000
+      
+      - key: HOST
+        value: 0.0.0.0
+      
+      # IMPORTANT: Set this to your Vercel frontend URL after deploying frontend
+      - key: FRONTEND_URL
+        value: https://your-app.vercel.app
+      
+      # IMPORTANT: Set this to match your Vercel domain(s)
+      - key: CORS_ORIGINS
+        value: https://*.vercel.app
+      
+      # IMPORTANT: Add your Upstash Redis URL from Upstash console
+      - key: REDIS_URL
+        sync: false  # You'll add this manually in Render dashboard
+      
+      - key: REDIS_SSL
+        value: true
+      
+      - key: LOG_LEVEL
+        value: INFO
+    
+    healthCheckPath: /health
+    
+    autoDeploy: true

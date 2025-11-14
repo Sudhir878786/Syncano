@@ -1,7 +1,10 @@
 /**
  * API Client
- * Handles all HTTP requests to the backend
+ * Handles all HTTP requests to the backend (Render)
  */
+
+// Get backend URL from environment or use default
+const BACKEND_URL = window.BACKEND_URL || 'http://localhost:10000';
 
 export const API = {
     /**
@@ -26,7 +29,7 @@ export const API = {
         const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
         
         try {
-            const response = await fetch(`/api/search?${params}`, {
+            const response = await fetch(`${BACKEND_URL}/api/search?${params}`, {
                 signal: controller.signal
             });
             clearTimeout(timeoutId);
@@ -56,7 +59,7 @@ export const API = {
             lyrics: includeLyrics.toString()
         });
         
-        const response = await fetch(`/api/song/${songId}?${params}`);
+        const response = await fetch(`${BACKEND_URL}/api/song/${songId}?${params}`);
         if (!response.ok) {
             throw new Error(`Failed to fetch song: ${response.statusText}`);
         }
@@ -69,7 +72,7 @@ export const API = {
      * @returns {Promise<Object>} Lyrics data
      */
     async getLyrics(songId) {
-        const response = await fetch(`/api/lyrics/${songId}`);
+        const response = await fetch(`${BACKEND_URL}/api/lyrics/${songId}`);
         if (!response.ok) {
             throw new Error(`Failed to fetch lyrics: ${response.statusText}`);
         }
@@ -82,7 +85,7 @@ export const API = {
      * @returns {Promise<Object>} Album data
      */
     async getAlbum(albumId) {
-        const response = await fetch(`/api/album/${albumId}`);
+        const response = await fetch(`${BACKEND_URL}/api/album/${albumId}`);
         if (!response.ok) {
             throw new Error(`Failed to fetch album: ${response.statusText}`);
         }
@@ -95,7 +98,7 @@ export const API = {
      * @returns {Promise<Object>} Playlist data
      */
     async getPlaylist(playlistId) {
-        const response = await fetch(`/api/playlist/${playlistId}`);
+        const response = await fetch(`${BACKEND_URL}/api/playlist/${playlistId}`);
         if (!response.ok) {
             throw new Error(`Failed to fetch playlist: ${response.statusText}`);
         }
@@ -107,7 +110,7 @@ export const API = {
      * @returns {Promise<Object>} Test results
      */
     async test() {
-        const response = await fetch('/api/test');
+        const response = await fetch(`${BACKEND_URL}/api/test`);
         if (!response.ok) {
             throw new Error(`API test failed: ${response.statusText}`);
         }

@@ -1,6 +1,7 @@
 """
 Main entry point for Syncano Music Streaming Application.
 Run this file to start the server.
+Can be used directly (python run.py) or with gunicorn (gunicorn run:app)
 """
 import os
 import sys
@@ -13,14 +14,14 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# Create app instance for gunicorn
+env = os.environ.get('FLASK_ENV', 'development')
+app = create_app(env)
+
 
 def main():
-    """Main application entry point."""
-    # Get environment
-    env = os.environ.get('FLASK_ENV', 'development')
-    
-    # Create app
-    app = create_app(env)
+    """Main application entry point for direct execution."""
+    global app  # Use the module-level app instance
     
     # Get configuration
     host = app.config.get('HOST', '0.0.0.0')

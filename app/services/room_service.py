@@ -25,10 +25,10 @@ class RoomService:
     
     def __init__(self, redis_url: Optional[str] = None):
         """
-        Initialize room service with Redis or in-memory storage.
+        Initialize room service with Upstash Redis or in-memory storage.
         
         Args:
-            redis_url: Redis connection URL (for serverless/distributed environments)
+            redis_url: Upstash Redis connection URL (required for production)
         """
         self.redis_client = None
         self.use_redis = False
@@ -36,32 +36,42 @@ class RoomService:
         # Try to connect to Redis if URL provided
         if redis_url and REDIS_AVAILABLE:
             try:
-                # Handle both redis:// and rediss:// (TLS) URLs
-                # Upstash requires SSL, so we need to handle that
+                # Upstash Redis configuration (supports TLS by default)
                 connection_kwargs = {
                     'decode_responses': True,
-                    'socket_connect_timeout': 5,
-                    'socket_timeout': 5
+                    'socket_connect_timeout': 10,
+                    'socket_timeout': 10,
+                    'socket_keepalive': True,
+                    'socket_keepalive_options': {},
+                    'retry_on_timeout': True,
+                    'health_check_interval': 30
                 }
                 
-                # If using rediss:// (TLS), add SSL parameters for Upstash
+                # Upstash uses rediss:// (TLS) by default
                 if redis_url.startswith('rediss://'):
-                    connection_kwargs['ssl_cert_reqs'] = None
+                    import ssl
+                    connection_kwargs['ssl_cert_reqs'] = ssl.CERT_NONE
+                    connection_kwargs['ssl_check_hostname'] = False
                 
-                self.redis_client = redis.from_url(redis_url, **connection_kwargs)
+                # Create connection pool for better performance
+                self.redis_client = redis.from_url(
+                    redis_url, 
+                    max_connections=20,
+                    **connection_kwargs
+                )
                 
                 # Test connection
                 self.redis_client.ping()
                 self.use_redis = True
-                logger.info("✓ Connected to Redis for distributed room state")
+                logger.info("✓ Connected to Upstash Redis for distributed room state")
             except Exception as e:
-                logger.warning(f"Failed to connect to Redis: {e}. Using in-memory storage.")
+                logger.error(f"Failed to connect to Upstash Redis: {e}. Using in-memory storage.")
                 self.redis_client = None
         
-        # Fallback to in-memory storage
+        # Fallback to in-memory storage (development only)
         if not self.use_redis:
             self.active_rooms: Dict[str, Dict[str, Any]] = {}
-            logger.info("Using in-memory room storage (not suitable for Vercel)")
+            logger.warning("⚠️ Using in-memory room storage (local development only)")
     
     def _get_room_key(self, room_id: str) -> str:
         """Get Redis key for room data."""

@@ -11,18 +11,26 @@ import { showSyncIndicator } from './utils.js';
 
 export const RoomManager = {
     /**
-     * Initialize Socket.IO
+     * Initialize Socket.IO connection to Render backend
      */
     initializeSocket() {
-        // Configure Socket.IO for Vercel serverless environment
-        AppState.socket = io({
-            transports: ['polling', 'websocket'],
+        // Get backend URL from environment or use default
+        const backendUrl = window.BACKEND_URL || 'http://localhost:10000';
+        
+        console.log('🔌 Connecting to Socket.IO backend:', backendUrl);
+        
+        // Configure Socket.IO for Render Web Service with persistent connections
+        AppState.socket = io(backendUrl, {
+            transports: ['polling', 'websocket'],  // Start with polling, upgrade to websocket
             upgrade: true,
             reconnection: true,
             reconnectionDelay: 1000,
-            reconnectionAttempts: 5,
+            reconnectionDelayMax: 5000,
+            reconnectionAttempts: Infinity,  // Keep trying to reconnect
             timeout: 20000,
-            forceNew: true
+            forceNew: false,
+            withCredentials: true,  // Important for CORS
+            autoConnect: true
         });
         
         this.setupSocketHandlers();
@@ -144,6 +152,13 @@ export const RoomManager = {
             }
         });
         
+        socket.on('room_closed', (data) => {
+            console.log('📡 Room closed by host:', data);
+            showSyncIndicator('Blend closed - host disconnected', 'error');
+            AppState.resetRoomState();
+            this.updateRoomUI();
+        });
+        
         socket.on('error', (data) => {
             console.error('Socket error:', data);
             showSyncIndicator(data.message || 'An error occurred', 'error');
@@ -263,12 +278,12 @@ export const RoomManager = {
      * Request sync with room
      */
     requestRoomSync() {
-        if (!AppState.inRoom) {
+        if (!AppState.inRoom || !AppState.currentRoom) {
             showSyncIndicator('You are not in a room', 'error');
             return;
         }
         
-        console.log('🔄 Requesting room sync (Vibe Check)');
+        console.log('🔄 Requesting room sync (Vibe Check) for room:', AppState.currentRoom);
         AppState.socket.emit('request_sync', { room_id: AppState.currentRoom });
         showSyncIndicator('Checking the vibe...', 'info');
     },

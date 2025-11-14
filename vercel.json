@@ -1,19 +1,28 @@
 {
   "version": 2,
-  "builds": [
+  "buildCommand": "echo 'Building frontend only - no backend'",
+  "outputDirectory": ".",
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "rewrites": [
     {
-      "src": "index.py",
-      "use": "@vercel/python"
+      "source": "/(.*)",
+      "destination": "/templates/index.html"
     }
   ],
-  "routes": [
+  "headers": [
     {
-      "src": "/(.*)",
-      "dest": "index.py"
+      "source": "/static/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
     }
   ],
   "env": {
-    "FLASK_ENV": "production"
+    "BACKEND_URL": "@backend_url"
   },
   "regions": ["bom1"]
 }

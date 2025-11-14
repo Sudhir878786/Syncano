@@ -3,6 +3,7 @@ Application factory and initialization.
 """
 from flask import Flask
 from flask_socketio import SocketIO
+from flask_cors import CORS
 import logging
 import os
 
@@ -37,6 +38,14 @@ def create_app(config_name='development'):
     config_class = get_config(config_name)
     app.config.from_object(config_class)
     
+    # Enable CORS for frontend (Vercel) to backend (Render) communication
+    CORS(app, resources={
+        r"/*": {
+            "origins": app.config.get('SOCKETIO_CORS_ALLOWED_ORIGINS', '*'),
+            "supports_credentials": True
+        }
+    })
+    
     # Setup logging
     setup_logger(app)
     
@@ -52,16 +61,20 @@ def create_app(config_name='development'):
     
     logger.info("Registered blueprints: main, api")
     
-    # Initialize Socket.IO with async_mode for Vercel compatibility
+    # Initialize Socket.IO with eventlet for Render persistent connections
     socketio.init_app(
         app, 
         cors_allowed_origins=app.config['SOCKETIO_CORS_ALLOWED_ORIGINS'],
-        async_mode='threading',
-        logger=True,  # Enable logging to help debug Vercel issues
+        async_mode=app.config.get('SOCKETIO_ASYNC_MODE', 'eventlet'),
+        logger=True,
         engineio_logger=True,
-        ping_timeout=60,
-        ping_interval=25,
-        max_http_buffer_size=1000000
+        ping_timeout=app.config['SOCKETIO_PING_TIMEOUT'],
+        ping_interval=app.config['SOCKETIO_PING_INTERVAL'],
+        max_http_buffer_size=1000000,
+        # Allow upgrading from polling to websocket
+        allow_upgrades=True,
+        # Transports order: start with polling, upgrade to websocket
+        transports=['polling', 'websocket']
     )
     
     # Register Socket.IO events

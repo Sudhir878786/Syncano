@@ -18,11 +18,38 @@ def index():
 
 @main_bp.route('/health')
 def health_check():
-    """Health check endpoint for monitoring."""
-    return jsonify({
+    """Health check endpoint for monitoring and debugging."""
+    from flask import current_app
+    import time
+    
+    health_status = {
         'status': 'healthy',
-        'service': 'syncano-music-app'
-    }), 200
+        'service': 'syncano-backend',
+        'timestamp': int(time.time()),
+        'environment': current_app.config.get('FLASK_ENV', 'unknown'),
+        'components': {}
+    }
+    
+    # Check Redis connection
+    try:
+        room_service = current_app.room_service
+        if room_service.use_redis and room_service.redis_client:
+            room_service.redis_client.ping()
+            health_status['components']['redis'] = 'connected'
+        else:
+            health_status['components']['redis'] = 'not_configured'
+    except Exception as e:
+        health_status['components']['redis'] = f'error: {str(e)}'
+        health_status['status'] = 'degraded'
+    
+    # Check Music API service
+    try:
+        music_service = current_app.music_service
+        health_status['components']['music_api'] = 'available'
+    except Exception as e:
+        health_status['components']['music_api'] = f'error: {str(e)}'
+    
+    return jsonify(health_status), 200 if health_status['status'] == 'healthy' else 503
 
 
 @main_bp.route('/room/<room_id>')

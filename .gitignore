@@ -82,3 +82,7 @@ JioSaavnAPI/
 *.seed
 *.pid.lock
 .vercel
+public/
+
+# Build output
+build_frontend.py.log
