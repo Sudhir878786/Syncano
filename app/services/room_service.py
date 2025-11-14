@@ -181,13 +181,14 @@ class RoomService:
             'playlist': room['playlist']
         }
     
-    def leave_room(self, room_id: str, user_sid: str) -> Optional[Dict[str, Any]]:
+    def leave_room(self, room_id: str, user_sid: str, force_remove: bool = False) -> Optional[Dict[str, Any]]:
         """
         Remove user from room.
         
         Args:
             room_id: Room ID
             user_sid: Socket ID of leaving user
+            force_remove: If True, only remove if host. If False, always remove.
             
         Returns:
             Updated room data or None
@@ -203,43 +204,40 @@ class RoomService:
         username = user['username']
         is_host = user['is_host']
         
-        # Remove user
-        del room['users'][user_sid]
+        # Only delete room if host leaves explicitly
+        if is_host:
+            # Delete the entire room when host leaves
+            self._delete_room_data(room_id)
+            logger.info(f"Room {room_id} deleted - host {username} left")
+            return {
+                'room_deleted': True,
+                'username': username,
+                'is_host': True
+            }
         
-        logger.info(f"{username} left room {room_id}")
-        
-        # Handle host departure
-        if is_host and room['users']:
-            # Assign new host
-            new_host_sid = next(iter(room['users']))
-            room['users'][new_host_sid]['is_host'] = True
-            room['host'] = new_host_sid
+        # For non-host users, only remove if explicitly leaving (not just disconnecting)
+        if force_remove:
+            # Remove user
+            del room['users'][user_sid]
+            
+            logger.info(f"{username} left room {room_id}")
             
             self._save_room(room_id, room)
             
-            logger.info(f"New host assigned in room {room_id}: {room['users'][new_host_sid]['username']}")
-            
             return {
                 'room_deleted': False,
-                'new_host': room['users'][new_host_sid]['username'],
                 'username': username,
                 'users': list(room['users'].values())
             }
         
-        # Delete room if empty
-        if not room['users']:
-            self._delete_room_data(room_id)
-            logger.info(f"Room {room_id} deleted - no users remaining")
-            return {'room_deleted': True, 'username': username}
-        
-        self._save_room(room_id, room)
-        
+        # On disconnect (not explicit leave), keep user in room for rejoin
+        logger.info(f"{username} disconnected from room {room_id} but can rejoin")
         return {
             'room_deleted': False,
             'username': username,
-            'users': list(room['users'].values())
-        }
-    
+            'users': list(room['users'].values()),
+            'temporarily_disconnected': True
+        }    
     def update_song(self, room_id: str, song: Dict[str, Any]) -> bool:
         """
         Update current song in room.

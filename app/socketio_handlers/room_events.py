@@ -50,7 +50,7 @@ def register_socketio_events(socketio):
     @socketio.on('join_room')
     def handle_join_room(data):
         """
-        Join an existing room.
+        Join an existing room (or rejoin with new socket ID).
         
         Data:
             room_id: ID of room to join
@@ -65,16 +65,23 @@ def register_socketio_events(socketio):
                 return
             
             room_service = get_room_service()
+            
+            # Check if room exists
+            if not room_service.room_exists(room_id):
+                emit('error', {'message': 'Room not found or has been closed'})
+                return
+            
+            # Join or rejoin room
             room_data = room_service.join_room(room_id, request.sid, username)
             
             if not room_data:
-                emit('error', {'message': 'Room not found'})
+                emit('error', {'message': 'Failed to join room'})
                 return
             
             # Join Socket.IO room
             join_room(room_id)
             
-            # Send room state to new user
+            # Send room state to user
             emit('room_joined', room_data)
             
             # Notify other users
@@ -258,7 +265,7 @@ def register_socketio_events(socketio):
                 return
             
             room_service = get_room_service()
-            leave_result = room_service.leave_room(room_id, request.sid)
+            leave_result = room_service.leave_room(room_id, request.sid, force_remove=True)
             
             if not leave_result:
                 emit('error', {'message': 'Failed to leave room'})
@@ -294,7 +301,7 @@ def register_socketio_events(socketio):
     
     @socketio.on('disconnect')
     def handle_disconnect():
-        """Handle user disconnection from room."""
+        """Handle user disconnection - keep them in room for rejoin unless host."""
         try:
             user_rooms = rooms(request.sid)
             room_service = get_room_service()
@@ -303,28 +310,32 @@ def register_socketio_events(socketio):
                 if room_id == request.sid:  # Skip user's own room
                     continue
                 
-                leave_result = room_service.leave_room(room_id, request.sid)
+                # Don't force remove - allow rejoin (unless host)
+                leave_result = room_service.leave_room(room_id, request.sid, force_remove=False)
                 
                 if not leave_result:
                     continue
                 
                 if leave_result.get('room_deleted'):
-                    logger.info(f"Room {room_id} deleted after user disconnect")
+                    # Room deleted because host left
+                    emit('room_closed', {
+                        'room_id': room_id,
+                        'message': 'Room closed - host disconnected'
+                    }, room=room_id)
+                    logger.info(f"Room {room_id} closed - host disconnected")
                     continue
                 
-                # Notify if new host assigned
-                if leave_result.get('new_host'):
-                    emit('new_host', {
-                        'new_host': leave_result['new_host']
+                # If temporarily disconnected, don't notify others yet
+                if not leave_result.get('temporarily_disconnected'):
+                    # Notify remaining users only if permanently left
+                    emit('user_left', {
+                        'username': leave_result['username'],
+                        'users': leave_result['users']
                     }, room=room_id)
-                
-                # Notify remaining users
-                emit('user_left', {
-                    'username': leave_result['username'],
-                    'users': leave_result['users']
-                }, room=room_id)
-                
-                logger.info(f"User {leave_result['username']} disconnected from room {room_id}")
+                    
+                    logger.info(f"User {leave_result['username']} left room {room_id}")
+                else:
+                    logger.info(f"User {leave_result['username']} disconnected from room {room_id} but can rejoin")
                 
         except Exception as e:
             logger.error(f"Error handling disconnect: {e}")
