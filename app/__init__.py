@@ -51,9 +51,17 @@ def create_app(config_name='development'):
     
     # Initialize services
     app.music_service = MusicService(app.config)
-    app.room_service = RoomService(redis_url=app.config.get('REDIS_URL'))
+    # Clean Redis URL (strip whitespace and trailing slashes)
+    redis_url = app.config.get('REDIS_URL')
+    if redis_url:
+        redis_url = redis_url.strip().rstrip('/')
+        logger.info(f"Initializing RoomService with Redis URL: SET (length: {len(redis_url)})")
+        logger.info(f"Redis URL starts with: {redis_url[:20]}...")
+    else:
+        logger.warning("Initializing RoomService with Redis URL: NOT SET")
+    app.room_service = RoomService(redis_url=redis_url)
     
-    logger.info(f"Initialized services: MusicService, RoomService")
+    logger.info(f"Initialized services: MusicService, RoomService (Redis: {app.room_service.use_redis})")
     
     # Initialize middleware for production
     from .middleware import RateLimiter, CacheManager

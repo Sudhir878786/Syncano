@@ -33,7 +33,13 @@ class RoomService:
         self.redis_client = None
         self.use_redis = False
         
+        # Clean the URL
+        if redis_url:
+            redis_url = redis_url.strip().rstrip('/')
+        
         logger.info(f"RoomService initializing... Redis URL provided: {bool(redis_url)}")
+        if redis_url:
+            logger.info(f"Redis URL format check: starts with '{redis_url[:10]}', length: {len(redis_url)}")
         
         # Try to connect to Redis if URL provided
         if redis_url and REDIS_AVAILABLE:
@@ -66,14 +72,15 @@ class RoomService:
                 max_retries = 3
                 for attempt in range(max_retries):
                     try:
-                        self.redis_client.ping()
+                        ping_result = self.redis_client.ping()
                         self.use_redis = True
-                        logger.info(f"✓ Connected to Upstash Redis for distributed room state (attempt {attempt + 1})")
+                        logger.info(f"Connected to Upstash Redis successfully (attempt {attempt + 1}, ping: {ping_result})")
                         break
                     except Exception as retry_error:
                         if attempt == max_retries - 1:
+                            logger.error(f"Redis connection failed after {max_retries} attempts: {retry_error}")
                             raise retry_error
-                        logger.warning(f"Redis connection attempt {attempt + 1} failed, retrying...")
+                        logger.warning(f"Redis connection attempt {attempt + 1} failed: {retry_error}, retrying...")
                         import time
                         time.sleep(1)
                         
@@ -102,7 +109,7 @@ class RoomService:
                     604800,  # 7 days expiry (604800 seconds)
                     room_json
                 )
-                logger.info(f"✓ Saved room {room_id} to Redis (key: {self._get_room_key(room_id)}): {result}")
+                logger.info(f"Saved room {room_id} to Redis successfully (key: {self._get_room_key(room_id)}, result: {result})")
             except Exception as e:
                 logger.error(f"Failed to save room {room_id} to Redis: {e}")
                 # Fallback to memory if Redis fails
@@ -121,10 +128,10 @@ class RoomService:
                 redis_key = self._get_room_key(room_id)
                 data = self.redis_client.get(redis_key)
                 if data:
-                    logger.info(f"✓ Retrieved room {room_id} from Redis (key: {redis_key})")
+                    logger.info(f"Retrieved room {room_id} from Redis successfully (key: {redis_key})")
                     return json.loads(data)
                 else:
-                    logger.info(f"✗ Room {room_id} not found in Redis (key: {redis_key})")
+                    logger.info(f"Room {room_id} not found in Redis (key: {redis_key})")
                     return None
             except Exception as e:
                 logger.error(f"Failed to get room {room_id} from Redis: {e}")

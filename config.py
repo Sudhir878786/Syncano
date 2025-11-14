@@ -38,7 +38,9 @@ class Config:
     SESSION_COOKIE_SAMESITE = 'Lax'
     
     # Redis Settings (Upstash Redis for distributed room state)
-    REDIS_URL = os.environ.get('REDIS_URL', None)
+    _redis_url = os.environ.get('REDIS_URL', None)
+    # Clean the Redis URL - strip whitespace and trailing slashes
+    REDIS_URL = _redis_url.strip().rstrip('/') if _redis_url else None
     REDIS_SSL = os.environ.get('REDIS_SSL', 'true').lower() == 'true'
     
     # Music API Settings

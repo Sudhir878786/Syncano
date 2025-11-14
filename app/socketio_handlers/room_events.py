@@ -33,6 +33,8 @@ def register_socketio_events(socketio):
             username = data.get('username', f'User_{request.sid[:8]}')
             
             room_service = get_room_service()
+            logger.info(f"Creating room for {username}, Redis enabled: {room_service.use_redis}")
+            
             room_data = room_service.create_room(request.sid, username)
             
             # Join Socket.IO room
@@ -41,10 +43,12 @@ def register_socketio_events(socketio):
             # Send confirmation to creator
             emit('room_created', room_data)
             
-            logger.info(f"Room {room_data['room_id']} created by {username}")
+            logger.info(f"Room {room_data['room_id']} created by {username} (Redis: {room_service.use_redis})")
             
         except Exception as e:
             logger.error(f"Error creating room: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
             emit('error', {'message': 'Failed to create room'})
     
     @socketio.on('join_room')
