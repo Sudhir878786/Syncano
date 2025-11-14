@@ -48,7 +48,12 @@ export const RoomManager = {
         socket.on('connect', () => {
             console.log('✅ Socket.IO connected:', socket.id);
             console.log('Transport:', socket.io.engine.transport.name);
-            showSyncIndicator('Connected to server', 'success');
+            
+            // Only show notification on FIRST connect or after failed reconnection
+            if (!AppState.socketConnected) {
+                showSyncIndicator('Connected to server', 'success');
+                AppState.socketConnected = true;
+            }
             
             // If we were in a room before disconnect, rejoin
             if (AppState.currentRoom && AppState.username) {
@@ -63,17 +68,25 @@ export const RoomManager = {
         socket.on('connect_error', (error) => {
             console.error('❌ Socket.IO connection error:', error.message);
             console.error('Error details:', error);
-            showSyncIndicator('Connection error. Retrying...', 'error');
+            // Only show error notification after multiple failed attempts
+            if (!AppState.connectionErrorShown) {
+                showSyncIndicator('Connection error. Retrying...', 'error');
+                AppState.connectionErrorShown = true;
+                setTimeout(() => { AppState.connectionErrorShown = false; }, 10000);
+            }
         });
         
         socket.on('disconnect', (reason) => {
             console.log('🔌 Socket.IO disconnected:', reason);
-            if (reason === 'io server disconnect') {
-                // Server disconnected, try to reconnect manually
+            
+            // Only show notification for unexpected disconnects, not normal pings
+            if (reason === 'io server disconnect' || reason === 'transport close') {
                 console.log('Server disconnected us, reconnecting...');
+                showSyncIndicator('Connection lost. Reconnecting...', 'error');
+                AppState.socketConnected = false;
                 socket.connect();
             }
-            showSyncIndicator('Disconnected from server', 'error');
+            // Don't show notifications for normal 'transport error' which is part of ping/pong
         });
         
         socket.on('reconnect', (attemptNumber) => {

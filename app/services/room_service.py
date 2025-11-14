@@ -94,12 +94,13 @@ class RoomService:
         if self.use_redis:
             try:
                 room_json = json.dumps(room_data, default=str)
+                # Use 7 days expiry for longer data retention
                 result = self.redis_client.setex(
                     self._get_room_key(room_id),
-                    86400,  # 24 hour expiry
+                    604800,  # 7 days expiry (604800 seconds)
                     room_json
                 )
-                logger.debug(f"Saved room {room_id} to Redis: {result}")
+                logger.info(f"✓ Saved room {room_id} to Redis (key: {self._get_room_key(room_id)}): {result}")
             except Exception as e:
                 logger.error(f"Failed to save room {room_id} to Redis: {e}")
                 # Fallback to memory if Redis fails
@@ -115,10 +116,13 @@ class RoomService:
         """Get room data from Redis or memory."""
         if self.use_redis:
             try:
-                data = self.redis_client.get(self._get_room_key(room_id))
+                redis_key = self._get_room_key(room_id)
+                data = self.redis_client.get(redis_key)
                 if data:
-                    logger.debug(f"Retrieved room {room_id} from Redis")
+                    logger.info(f"✓ Retrieved room {room_id} from Redis (key: {redis_key})")
                     return json.loads(data)
+                else:
+                    logger.info(f"✗ Room {room_id} not found in Redis (key: {redis_key})")
                 else:
                     logger.debug(f"Room {room_id} not found in Redis")
                     return None

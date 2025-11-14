@@ -20,6 +20,8 @@ export const AppState = {
     username: null,
     isHost: false,
     inRoom: false,
+    socketConnected: false,
+    connectionErrorShown: false,
     
     // Lyrics state
     currentLyrics: [],
