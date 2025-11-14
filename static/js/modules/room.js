@@ -79,20 +79,24 @@ export const RoomManager = {
         socket.on('disconnect', (reason) => {
             console.log('🔌 Socket.IO disconnected:', reason);
             
-            // Only show notification for unexpected disconnects, not normal pings
-            if (reason === 'io server disconnect' || reason === 'transport close') {
+            // Only show notification for permanent disconnects - not automatic reconnections
+            if (reason === 'io server disconnect') {
                 console.log('Server disconnected us, reconnecting...');
-                showSyncIndicator('Connection lost. Reconnecting...', 'error');
                 AppState.socketConnected = false;
                 socket.connect();
+            } else if (reason === 'transport close' || reason === 'transport error') {
+                // Normal reconnection - don't show notification
+                console.log('Transport issue, Socket.IO will auto-reconnect');
+                AppState.socketConnected = false;
             }
-            // Don't show notifications for normal 'transport error' which is part of ping/pong
+            // Don't show any notifications for disconnect - only show if reconnection fails
         });
         
         socket.on('reconnect', (attemptNumber) => {
             console.log('🔄 Socket.IO reconnected after', attemptNumber, 'attempts');
             console.log('Transport:', socket.io.engine.transport.name);
-            showSyncIndicator('Reconnected to server', 'success');
+            // Don't show notification for automatic reconnects - too noisy
+            AppState.socketConnected = true;
         });
         
         socket.on('reconnect_attempt', (attemptNumber) => {
@@ -105,7 +109,8 @@ export const RoomManager = {
         
         socket.on('reconnect_failed', () => {
             console.error('❌ Reconnection failed after all attempts');
-            showSyncIndicator('Failed to reconnect. Please refresh.', 'error');
+            showSyncIndicator('Connection lost. Please refresh.', 'error');
+            AppState.socketConnected = false;
         });
         
         socket.on('room_created', (data) => {

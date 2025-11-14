@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Local Syncano</title>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+        body { font-family: Arial; padding: 20px; max-width: 800px; margin: 0 auto; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        #log { border: 1px solid #ccc; padding: 10px; height: 400px; overflow-y: auto; background: #f5f5f5; font-family: monospace; font-size: 12px; }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+    </style>
+</head>
+<body>
+    <h1>🎧 Test Local Syncano Server</h1>
+    <p>Server: <strong>http://localhost:10000</strong></p>
+    
+    <div>
+        <button onclick="testCreateRoom()">1. Create Room</button>
+        <button onclick="testJoinRoom()">2. Join Room</button>
+        <button onclick="testCheckRedis()">3. Check Redis Keys</button>
+        <button onclick="clearLog()">Clear Log</button>
+    </div>
+    
+    <h3>Connection Status: <span id="status">Disconnected</span></h3>
+    <h3>Room ID: <span id="roomId">None</span></h3>
+    
+    <h3>Event Log:</h3>
+    <div id="log"></div>
+
+    <script>
+        let socket = null;
+        let currentRoomId = null;
+        
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            const color = type === 'success' ? 'green' : type === 'error' ? 'red' : 'blue';
+            logDiv.innerHTML += `<div style="color: ${color}">[${time}] ${message}</div>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+        
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+        
+        function updateStatus(status) {
+            document.getElementById('status').textContent = status;
+            document.getElementById('status').style.color = status === 'Connected' ? 'green' : 'red';
+        }
+        
+        // Initialize Socket.IO
+        log('Initializing Socket.IO connection...');
+        socket = io('http://localhost:10000', {
+            transports: ['websocket', 'polling'],
+            upgrade: true,
+            reconnection: true,
+            reconnectionDelay: 1000,
+            timeout: 20000,
+            withCredentials: true,
+            autoConnect: true,
+            pingTimeout: 60000,
+            pingInterval: 25000
+        });
+        
+        socket.on('connect', () => {
+            log('✅ Socket.IO connected! Socket ID: ' + socket.id, 'success');
+            updateStatus('Connected');
+        });
+        
+        socket.on('disconnect', (reason) => {
+            log('❌ Socket.IO disconnected: ' + reason, 'error');
+            updateStatus('Disconnected');
+        });
+        
+        socket.on('connect_error', (error) => {
+            log('❌ Connection error: ' + error.message, 'error');
+        });
+        
+        socket.on('room_created', (data) => {
+            log('✅ Room created! ID: ' + data.room_id, 'success');
+            currentRoomId = data.room_id;
+            document.getElementById('roomId').textContent = currentRoomId;
+            log('   Host: ' + data.username);
+            log('   Is Host: ' + data.is_host);
+        });
+        
+        socket.on('room_joined', (data) => {
+            log('✅ Room joined! ID: ' + data.room_id, 'success');
+            currentRoomId = data.room_id;
+            document.getElementById('roomId').textContent = currentRoomId;
+            log('   Users: ' + Object.keys(data.users).length);
+        });
+        
+        socket.on('error', (data) => {
+            log('❌ Error: ' + data.message, 'error');
+        });
+        
+        function testCreateRoom() {
+            log('Creating room...', 'info');
+            const username = 'TestUser_' + Math.floor(Math.random() * 1000);
+            socket.emit('create_room', { username: username });
+        }
+        
+        function testJoinRoom() {
+            if (!currentRoomId) {
+                log('❌ No room ID! Create a room first.', 'error');
+                return;
+            }
+            log('Joining room: ' + currentRoomId, 'info');
+            const username = 'JoinUser_' + Math.floor(Math.random() * 1000);
+            socket.emit('join_room', { 
+                room_id: currentRoomId, 
+                username: username 
+            });
+        }
+        
+        async function testCheckRedis() {
+            log('Checking Redis keys...', 'info');
+            try {
+                const response = await fetch('http://localhost:10000/health');
+                const data = await response.json();
+                log('Health check response:', 'info');
+                log('   Status: ' + data.status, data.status === 'healthy' ? 'success' : 'error');
+                log('   Redis: ' + data.components.redis, data.components.redis === 'connected' ? 'success' : 'error');
+                log('   Uptime: ' + Math.floor(data.uptime) + ' seconds');
+                
+                if (currentRoomId) {
+                    log('Current room ID: ' + currentRoomId, 'success');
+                    log('Check Upstash dashboard for key: room:' + currentRoomId);
+                }
+            } catch (error) {
+                log('❌ Failed to fetch health: ' + error.message, 'error');
+            }
+        }
+        
+        log('Ready! Click "Create Room" to start testing.');
+    </script>
+</body>
+</html>

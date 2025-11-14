@@ -33,6 +33,8 @@ class RoomService:
         self.redis_client = None
         self.use_redis = False
         
+        logger.info(f"RoomService initializing... Redis URL provided: {bool(redis_url)}")
+        
         # Try to connect to Redis if URL provided
         if redis_url and REDIS_AVAILABLE:
             try:
