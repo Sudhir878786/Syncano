@@ -123,8 +123,6 @@ class RoomService:
                     return json.loads(data)
                 else:
                     logger.info(f"✗ Room {room_id} not found in Redis (key: {redis_key})")
-                else:
-                    logger.debug(f"Room {room_id} not found in Redis")
                     return None
             except Exception as e:
                 logger.error(f"Failed to get room {room_id} from Redis: {e}")
