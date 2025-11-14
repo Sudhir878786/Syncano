@@ -39,35 +39,46 @@ class RoomService:
                 # Upstash Redis configuration (supports TLS by default)
                 connection_kwargs = {
                     'decode_responses': True,
-                    'socket_connect_timeout': 10,
-                    'socket_timeout': 10,
+                    'socket_connect_timeout': 5,
+                    'socket_timeout': 5,
                     'socket_keepalive': True,
-                    'socket_keepalive_options': {},
                     'retry_on_timeout': True,
-                    'health_check_interval': 30
+                    'retry_on_error': [redis.exceptions.ConnectionError, redis.exceptions.TimeoutError],
+                    'health_check_interval': 10
                 }
                 
                 # Upstash uses rediss:// (TLS) by default
                 if redis_url.startswith('rediss://'):
                     import ssl
-                    connection_kwargs['ssl_cert_reqs'] = ssl.CERT_NONE
-                    connection_kwargs['ssl_check_hostname'] = False
+                    connection_kwargs['ssl_cert_reqs'] = ssl.CERT_REQUIRED
+                    connection_kwargs['ssl_ca_certs'] = None
                 
                 # Create connection pool for production-grade performance
-                # Increased pool size for high concurrency
                 self.redis_client = redis.from_url(
                     redis_url, 
-                    max_connections=50,  # Increased from 20 for scalability
+                    max_connections=10,
                     **connection_kwargs
                 )
                 
-                # Test connection
-                self.redis_client.ping()
-                self.use_redis = True
-                logger.info("✓ Connected to Upstash Redis for distributed room state")
+                # Test connection with retry
+                max_retries = 3
+                for attempt in range(max_retries):
+                    try:
+                        self.redis_client.ping()
+                        self.use_redis = True
+                        logger.info(f"✓ Connected to Upstash Redis for distributed room state (attempt {attempt + 1})")
+                        break
+                    except Exception as retry_error:
+                        if attempt == max_retries - 1:
+                            raise retry_error
+                        logger.warning(f"Redis connection attempt {attempt + 1} failed, retrying...")
+                        import time
+                        time.sleep(1)
+                        
             except Exception as e:
                 logger.error(f"Failed to connect to Upstash Redis: {e}. Using in-memory storage.")
                 self.redis_client = None
+                self.use_redis = False
         
         # Fallback to in-memory storage (development only)
         if not self.use_redis:
@@ -82,14 +93,22 @@ class RoomService:
         """Save room data to Redis or memory."""
         if self.use_redis:
             try:
-                self.redis_client.setex(
+                room_json = json.dumps(room_data, default=str)
+                result = self.redis_client.setex(
                     self._get_room_key(room_id),
                     86400,  # 24 hour expiry
-                    json.dumps(room_data)
+                    room_json
                 )
+                logger.debug(f"Saved room {room_id} to Redis: {result}")
             except Exception as e:
                 logger.error(f"Failed to save room {room_id} to Redis: {e}")
+                # Fallback to memory if Redis fails
+                if not hasattr(self, 'active_rooms'):
+                    self.active_rooms = {}
+                self.active_rooms[room_id] = room_data
         else:
+            if not hasattr(self, 'active_rooms'):
+                self.active_rooms = {}
             self.active_rooms[room_id] = room_data
     
     def _get_room_data(self, room_id: str) -> Optional[Dict[str, Any]]:
@@ -97,7 +116,12 @@ class RoomService:
         if self.use_redis:
             try:
                 data = self.redis_client.get(self._get_room_key(room_id))
-                return json.loads(data) if data else None
+                if data:
+                    logger.debug(f"Retrieved room {room_id} from Redis")
+                    return json.loads(data)
+                else:
+                    logger.debug(f"Room {room_id} not found in Redis")
+                    return None
             except Exception as e:
                 logger.error(f"Failed to get room {room_id} from Redis: {e}")
                 return None
@@ -109,10 +133,28 @@ class RoomService:
         if self.use_redis:
             try:
                 self.redis_client.delete(self._get_room_key(room_id))
+                logger.info(f"Deleted room {room_id} from Redis")
             except Exception as e:
                 logger.error(f"Failed to delete room {room_id} from Redis: {e}")
         else:
             self.active_rooms.pop(room_id, None)
+    
+    def room_exists(self, room_id: str) -> bool:
+        """Check if room exists."""
+        if self.use_redis:
+            try:
+                exists = self.redis_client.exists(self._get_room_key(room_id))
+                logger.debug(f"Room {room_id} exists check: {bool(exists)}")
+                return bool(exists)
+            except Exception as e:
+                logger.error(f"Failed to check if room {room_id} exists: {e}")
+                return False
+        else:
+            return room_id in getattr(self, 'active_rooms', {})
+    
+    def get_room(self, room_id: str) -> Optional[Dict[str, Any]]:
+        """Public method to get room data."""
+        return self._get_room_data(room_id)
     
     def create_room(self, host_sid: str, username: str) -> Dict[str, Any]:
         """
@@ -166,9 +208,10 @@ class RoomService:
         Returns:
             Room join data or None if room doesn't exist
         """
+        logger.info(f"User {username} (SID: {user_sid}) attempting to join room {room_id}")
         room = self._get_room_data(room_id)
         if not room:
-            logger.warning(f"Attempt to join non-existent room: {room_id}")
+            logger.warning(f"Attempt to join non-existent room: {room_id} - Redis: {self.use_redis}")
             return None
         
         # Add user to room

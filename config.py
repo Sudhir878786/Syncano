@@ -22,10 +22,10 @@ class Config:
     FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:5173')
     BACKEND_URL = os.environ.get('BACKEND_URL', 'http://localhost:10000')
     
-    # Socket.IO Settings - Optimized to prevent disconnections
+    # Socket.IO Settings - Optimized for stable connections
     SOCKETIO_CORS_ALLOWED_ORIGINS = os.environ.get('CORS_ORIGINS', '*')
-    SOCKETIO_PING_TIMEOUT = 120  # Increased from 60 to prevent disconnects
-    SOCKETIO_PING_INTERVAL = 25  # Keep pings frequent
+    SOCKETIO_PING_TIMEOUT = 60000  # 60 seconds in milliseconds
+    SOCKETIO_PING_INTERVAL = 25000  # 25 seconds in milliseconds
     SOCKETIO_MAX_HTTP_BUFFER_SIZE = 100000000  # 100MB for large payloads
     SOCKETIO_ALWAYS_CONNECT = True
     # Use threading by default, eventlet if explicitly set and available
@@ -84,8 +84,8 @@ class ProductionConfig(Config):
     )
     
     # Longer timeouts for production to handle network latency
-    SOCKETIO_PING_TIMEOUT = 180  # 3 minutes
-    SOCKETIO_PING_INTERVAL = 30   # Ping every 30 seconds
+    SOCKETIO_PING_TIMEOUT = 60000  # 60 seconds in milliseconds
+    SOCKETIO_PING_INTERVAL = 25000  # 25 seconds in milliseconds
 
 
 class TestingConfig(Config):

@@ -21,19 +21,19 @@ export const RoomManager = {
         
         // Configure Socket.IO for Render Web Service with persistent connections
         AppState.socket = io(backendUrl, {
-            transports: ['polling', 'websocket'],  // Start with polling, upgrade to websocket
+            transports: ['websocket', 'polling'],  // Try websocket first
             upgrade: true,
             reconnection: true,
             reconnectionDelay: 1000,
-            reconnectionDelayMax: 10000,  // Increased from 5000 to allow longer backoff
-            reconnectionAttempts: Infinity,  // Keep trying to reconnect
-            timeout: 30000,  // Increased from 20000 to match backend timeout
+            reconnectionDelayMax: 5000,
+            reconnectionAttempts: 10,  // Limit reconnection attempts
+            timeout: 20000,
             forceNew: false,
             withCredentials: true,  // Important for CORS
             autoConnect: true,
             // Heartbeat settings to match backend
-            pingTimeout: 120000,  // 2 minutes to match backend ping_timeout
-            pingInterval: 25000   // 25 seconds to match backend ping_interval
+            pingTimeout: 60000,  // 60 seconds to match backend
+            pingInterval: 25000   // 25 seconds to match backend
         });
         
         this.setupSocketHandlers();
@@ -47,31 +47,52 @@ export const RoomManager = {
         
         socket.on('connect', () => {
             console.log('✅ Socket.IO connected:', socket.id);
+            console.log('Transport:', socket.io.engine.transport.name);
             showSyncIndicator('Connected to server', 'success');
-        });
-        
-        socket.on('connect_error', (error) => {
-            console.error('❌ Socket.IO connection error:', error);
-            showSyncIndicator('Connection error. Retrying...', 'error');
-        });
-        
-        socket.on('disconnect', (reason) => {
-            console.log('🔌 Socket.IO disconnected:', reason);
-            showSyncIndicator('Disconnected from server', 'error');
-        });
-        
-        socket.on('reconnect', (attemptNumber) => {
-            console.log('🔄 Socket.IO reconnected after', attemptNumber, 'attempts');
-            showSyncIndicator('Reconnected to server', 'success');
             
-            // If we were in a room, try to rejoin
+            // If we were in a room before disconnect, rejoin
             if (AppState.currentRoom && AppState.username) {
-                console.log('🔄 Rejoining room after reconnect:', AppState.currentRoom);
+                console.log('🔄 Auto-rejoining room after connect:', AppState.currentRoom);
                 socket.emit('join_room', { 
                     room_id: AppState.currentRoom, 
                     username: AppState.username 
                 });
             }
+        });
+        
+        socket.on('connect_error', (error) => {
+            console.error('❌ Socket.IO connection error:', error.message);
+            console.error('Error details:', error);
+            showSyncIndicator('Connection error. Retrying...', 'error');
+        });
+        
+        socket.on('disconnect', (reason) => {
+            console.log('🔌 Socket.IO disconnected:', reason);
+            if (reason === 'io server disconnect') {
+                // Server disconnected, try to reconnect manually
+                console.log('Server disconnected us, reconnecting...');
+                socket.connect();
+            }
+            showSyncIndicator('Disconnected from server', 'error');
+        });
+        
+        socket.on('reconnect', (attemptNumber) => {
+            console.log('🔄 Socket.IO reconnected after', attemptNumber, 'attempts');
+            console.log('Transport:', socket.io.engine.transport.name);
+            showSyncIndicator('Reconnected to server', 'success');
+        });
+        
+        socket.on('reconnect_attempt', (attemptNumber) => {
+            console.log(`🔄 Reconnection attempt ${attemptNumber}...`);
+        });
+        
+        socket.on('reconnect_error', (error) => {
+            console.error('❌ Reconnection error:', error.message);
+        });
+        
+        socket.on('reconnect_failed', () => {
+            console.error('❌ Reconnection failed after all attempts');
+            showSyncIndicator('Failed to reconnect. Please refresh.', 'error');
         });
         
         socket.on('room_created', (data) => {
