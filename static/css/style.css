@@ -155,6 +155,46 @@ button, a, input, select, textarea {
     border-radius: 6px;
 }
 
+/* ===== Search Suggestions ===== */
+#searchSuggestions {
+    animation: slideDown 0.1s ease-out;
+    backdrop-filter: blur(20px);
+    will-change: transform, opacity;
+}
+
+#searchSuggestions::-webkit-scrollbar {
+    width: 8px;
+}
+
+#searchSuggestions::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+#searchSuggestions::-webkit-scrollbar-thumb {
+    background: var(--spotify-gray);
+    border-radius: 4px;
+}
+
+#searchSuggestions::-webkit-scrollbar-thumb:hover {
+    background: var(--spotify-light-gray);
+}
+
+#suggestionsContent > div {
+    will-change: background-color;
+    transition: background-color 0.1s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 .sidebar-header {
     padding: 24px 24px 18px;
 }

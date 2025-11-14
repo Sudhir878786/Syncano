@@ -10,6 +10,185 @@ import { Player } from './player.js';
 import { escapeHtml } from './utils.js';
 
 export const Search = {
+    // Cache for faster subsequent searches
+    _cache: new Map(),
+    _cacheTimeout: 5 * 60 * 1000, // 5 minutes
+    _lastQuery: '',
+    _currentRequest: null,
+    
+    /**
+     * Show live suggestions as user types
+     */
+    async showLiveSuggestions(query) {
+        if (!query || query.length < 1) {
+            this.hideSuggestions();
+            return;
+        }
+        
+        // Cancel previous request if still pending
+        if (this._currentRequest) {
+            this._currentRequest.cancelled = true;
+        }
+        
+        // Check cache first for instant response
+        const cacheKey = query.toLowerCase().trim();
+        const cached = this._cache.get(cacheKey);
+        if (cached && Date.now() - cached.timestamp < this._cacheTimeout) {
+            this.displaySuggestions(cached.results.slice(0, 5));
+            return;
+        }
+        
+        // Show loading state only if not cached
+        if (!cached) {
+            this.showSuggestionsLoading();
+        }
+        
+        try {
+            const request = { cancelled: false };
+            this._currentRequest = request;
+            
+            // Limit to 5 results for faster API response
+            const data = await API.search(query, false, 5);
+            
+            // Ignore if this request was cancelled or superseded
+            if (request.cancelled || this._lastQuery !== query) {
+                return;
+            }
+            
+            // Cache the results
+            this._cache.set(cacheKey, {
+                results: data.results || [],
+                timestamp: Date.now()
+            });
+            
+            // Limit cache size to 50 entries
+            if (this._cache.size > 50) {
+                const firstKey = this._cache.keys().next().value;
+                this._cache.delete(firstKey);
+            }
+            
+            if (!data.results || data.results.length === 0) {
+                this.showNoSuggestions();
+                return;
+            }
+            
+            this.displaySuggestions(data.results.slice(0, 5));
+        } catch (error) {
+            console.error('Suggestions error:', error);
+            if (!this._currentRequest?.cancelled) {
+                // Show error message instead of hiding
+                if (DOM.suggestionsContent && DOM.searchSuggestions) {
+                    DOM.suggestionsContent.innerHTML = `
+                        <div class="flex items-center justify-center p-4 text-red-400">
+                            <i class="fas fa-exclamation-triangle mr-2"></i>
+                            <span class="text-sm">Search error. Press Enter to try full search.</span>
+                        </div>
+                    `;
+                    DOM.searchSuggestions.classList.remove('hidden');
+                }
+            }
+        } finally {
+            if (this._currentRequest === request) {
+                this._currentRequest = null;
+            }
+        }
+    },
+    
+    /**
+     * Show loading state in suggestions
+     */
+    showSuggestionsLoading() {
+        if (!DOM.suggestionsContent || !DOM.searchSuggestions) return;
+        
+        DOM.suggestionsContent.innerHTML = `
+            <div class="flex items-center justify-center p-4 text-spotify-light-gray">
+                <i class="fas fa-circle-notch fa-spin mr-2"></i>
+                <span class="text-sm">Searching...</span>
+            </div>
+        `;
+        DOM.searchSuggestions.classList.remove('hidden');
+    },
+    
+    /**
+     * Show no suggestions message
+     */
+    showNoSuggestions() {
+        if (!DOM.suggestionsContent || !DOM.searchSuggestions) return;
+        
+        DOM.suggestionsContent.innerHTML = `
+            <div class="flex items-center justify-center p-4 text-spotify-light-gray">
+                <i class="fas fa-search mr-2"></i>
+                <span class="text-sm">No results found</span>
+            </div>
+        `;
+        DOM.searchSuggestions.classList.remove('hidden');
+    },
+    
+    /**
+     * Display suggestions dropdown
+     */
+    displaySuggestions(songs) {
+        if (!DOM.suggestionsContent || !DOM.searchSuggestions) return;
+        
+        // Use DocumentFragment for faster DOM updates
+        const fragment = document.createDocumentFragment();
+        
+        songs.forEach((song, index) => {
+            const suggestion = this.createSuggestionItem(song, index);
+            fragment.appendChild(suggestion);
+        });
+        
+        // Single DOM update for better performance
+        DOM.suggestionsContent.innerHTML = '';
+        DOM.suggestionsContent.appendChild(fragment);
+        DOM.searchSuggestions.classList.remove('hidden');
+    },
+    
+    /**
+     * Create suggestion item
+     */
+    createSuggestionItem(song, index) {
+        const item = document.createElement('div');
+        item.className = 'flex items-center gap-3 p-3 hover:bg-spotify-gray cursor-pointer transition-colors';
+        
+        let imageUrl = song.image_url || song.image || song.thumbnail;
+        if (Array.isArray(imageUrl)) {
+            imageUrl = imageUrl[imageUrl.length - 1];
+        }
+        if (!imageUrl) {
+            imageUrl = 'https://via.placeholder.com/48x48/1DB954/FFFFFF?text=♪';
+        }
+        
+        const title = escapeHtml(song.title || song.song || 'Unknown Title');
+        const artist = escapeHtml(song.singers || song.artist || song.primary_artists || 'Unknown Artist');
+        
+        item.innerHTML = `
+            <img src="${imageUrl}" alt="${title}" class="w-12 h-12 rounded object-cover">
+            <div class="flex-1 min-w-0">
+                <div class="font-semibold text-sm truncate">${title}</div>
+                <div class="text-xs text-spotify-light-gray truncate">${artist}</div>
+            </div>
+            <i class="fas fa-play text-spotify-green opacity-0 group-hover:opacity-100"></i>
+        `;
+        
+        item.addEventListener('click', () => {
+            // Add to playlist and play
+            AppState.currentPlaylist = [song];
+            Player.playSong(0);
+            this.hideSuggestions();
+            DOM.searchInput.value = title;
+        });
+        
+        return item;
+    },
+    
+    /**
+     * Hide suggestions dropdown
+     */
+    hideSuggestions() {
+        DOM.searchSuggestions?.classList.add('hidden');
+    },
+    
     /**
      * Perform search
      */
@@ -22,6 +201,9 @@ export const Search = {
             console.log('⚠️ Empty query, skipping search');
             return;
         }
+        
+        // Hide suggestions when performing full search
+        this.hideSuggestions();
         
         DOM.loadingSpinner?.classList.remove('hidden');
         console.log('⏳ Loading spinner shown');
@@ -42,19 +224,30 @@ export const Search = {
      * @param {Object} data - Search results data
      */
     displayResults(data) {
-        if (!DOM.resultsContainer) return;
+        console.log('📊 displayResults called with:', data);
+        console.log('📦 resultsContainer:', DOM.resultsContainer);
+        console.log('🔍 searchResults section:', DOM.searchResults);
+        
+        if (!DOM.resultsContainer) {
+            console.error('❌ resultsContainer not found!');
+            return;
+        }
         
         this.showSearchResults();
         
         if (!data.results || data.results.length === 0) {
+            console.log('⚠️ No results in data');
             DOM.resultsContainer.innerHTML = `
-                <div class="no-results">
-                    <i class="fas fa-search"></i>
-                    <p>No results found for "${escapeHtml(data.query)}"</p>
+                <div class="col-span-full text-center py-16">
+                    <i class="fas fa-search text-6xl text-spotify-light-gray mb-4"></i>
+                    <p class="text-xl font-semibold mb-2">No results found</p>
+                    <p class="text-spotify-light-gray">Try searching for something else</p>
                 </div>
             `;
             return;
         }
+        
+        console.log(`✅ Displaying ${data.results.length} results`);
         
         AppState.currentPlaylist = data.results;
         
@@ -64,6 +257,8 @@ export const Search = {
             const songCard = this.createSongCard(song, index);
             DOM.resultsContainer.appendChild(songCard);
         });
+        
+        console.log('✅ Results displayed successfully');
     },
     
     /**
@@ -122,9 +317,16 @@ export const Search = {
      * Show search results section
      */
     showSearchResults() {
+        console.log('👁️ Showing search results section');
+        console.log('Before - searchResults hidden?', DOM.searchResults?.classList.contains('hidden'));
+        console.log('Before - welcomeSection hidden?', DOM.welcomeSection?.classList.contains('hidden'));
+        
         DOM.searchResults?.classList.remove('hidden');
         DOM.welcomeSection?.classList.add('hidden');
         DOM.likedSongsSection?.classList.add('hidden');
+        
+        console.log('After - searchResults hidden?', DOM.searchResults?.classList.contains('hidden'));
+        console.log('After - welcomeSection hidden?', DOM.welcomeSection?.classList.contains('hidden'));
     },
     
     /**

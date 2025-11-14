@@ -9,6 +9,87 @@ import { escapeHtml } from './utils.js';
 import { API } from './api.js';
 
 export const LyricsManager = {
+    isDragging: false,
+    currentX: 0,
+    currentY: 0,
+    initialX: 0,
+    initialY: 0,
+    xOffset: 0,
+    yOffset: 0,
+    
+    /**
+     * Initialize drag functionality
+     */
+    initializeDrag() {
+        const terminal = document.getElementById('lyricsTerminal');
+        const header = document.getElementById('lyricsHeader');
+        
+        if (!terminal || !header) return;
+        
+        header.addEventListener('mousedown', (e) => this.dragStart(e));
+        document.addEventListener('mousemove', (e) => this.drag(e));
+        document.addEventListener('mouseup', () => this.dragEnd());
+        
+        // Touch support
+        header.addEventListener('touchstart', (e) => this.dragStart(e));
+        document.addEventListener('touchmove', (e) => this.drag(e));
+        document.addEventListener('touchend', () => this.dragEnd());
+        
+        console.log('🎯 Lyrics drag functionality initialized');
+    },
+    
+    /**
+     * Start dragging
+     */
+    dragStart(e) {
+        const terminal = document.getElementById('lyricsTerminal');
+        if (!terminal) return;
+        
+        if (e.type === 'touchstart') {
+            this.initialX = e.touches[0].clientX - this.xOffset;
+            this.initialY = e.touches[0].clientY - this.yOffset;
+        } else {
+            this.initialX = e.clientX - this.xOffset;
+            this.initialY = e.clientY - this.yOffset;
+        }
+        
+        if (e.target.closest('#lyricsHeader')) {
+            this.isDragging = true;
+        }
+    },
+    
+    /**
+     * Handle dragging
+     */
+    drag(e) {
+        if (!this.isDragging) return;
+        
+        e.preventDefault();
+        
+        const terminal = document.getElementById('lyricsTerminal');
+        if (!terminal) return;
+        
+        if (e.type === 'touchmove') {
+            this.currentX = e.touches[0].clientX - this.initialX;
+            this.currentY = e.touches[0].clientY - this.initialY;
+        } else {
+            this.currentX = e.clientX - this.initialX;
+            this.currentY = e.clientY - this.initialY;
+        }
+        
+        this.xOffset = this.currentX;
+        this.yOffset = this.currentY;
+        
+        terminal.style.transform = `translate(${this.currentX}px, ${this.currentY}px)`;
+    },
+    
+    /**
+     * End dragging
+     */
+    dragEnd() {
+        this.isDragging = false;
+    },
+    
     /**
      * Fetch and display lyrics
      * @param {string} songId - Song ID
@@ -123,6 +204,11 @@ export const LyricsManager = {
     showLyricsTerminal() {
         if (DOM.lyricsTerminal) {
             DOM.lyricsTerminal.classList.remove('hidden');
+            // Initialize drag on first show
+            if (!this.dragInitialized) {
+                this.initializeDrag();
+                this.dragInitialized = true;
+            }
         }
     },
     

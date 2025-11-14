@@ -8,6 +8,8 @@ export const DOM = {
     searchInput: null,
     searchResults: null,
     resultsContainer: null,
+    searchSuggestions: null,
+    suggestionsContent: null,
     welcomeSection: null,
     loadingSpinner: null,
     
@@ -51,6 +53,7 @@ export const DOM = {
     progressSlider: null,
     progressFill: null,
     volumeSlider: null,
+    volumeFill: null,
     volumeBtn: null,
     
     // Lyrics elements
@@ -65,6 +68,8 @@ export const DOM = {
         this.searchInput = document.getElementById('searchInput');
         this.searchResults = document.getElementById('searchResults');
         this.resultsContainer = document.getElementById('resultsContainer');
+        this.searchSuggestions = document.getElementById('searchSuggestions');
+        this.suggestionsContent = document.getElementById('suggestionsContent');
         this.welcomeSection = document.getElementById('welcomeSection');
         this.loadingSpinner = document.getElementById('loadingSpinner');
         
@@ -108,6 +113,7 @@ export const DOM = {
         this.progressSlider = document.getElementById('progressSlider');
         this.progressFill = document.getElementById('progressFill');
         this.volumeSlider = document.getElementById('volumeSlider');
+        this.volumeFill = document.getElementById('volumeFill');
         this.volumeBtn = document.getElementById('volumeBtn');
         
         // Lyrics

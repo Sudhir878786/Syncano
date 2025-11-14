@@ -7,6 +7,7 @@ import { AppState } from './state.js';
 import { DOM } from './dom.js';
 import { API } from './api.js';
 import { LyricsManager } from './lyrics.js';
+import { ColorExtractor } from './color-extractor.js';
 import { showSyncIndicator, formatTime, showError } from './utils.js';
 
 export const Player = {
@@ -66,10 +67,8 @@ export const Player = {
             
             const songWithUrl = { ...song, url: audioUrl };
             
-            // Fetch and display lyrics
-            if (song.id) {
-                LyricsManager.fetchLyrics(song.id);
-            }
+            // Store song ID for lyrics (fetch only when user clicks lyrics button)
+            AppState.currentSongId = song.id;
             
             // If in a room and is host, emit song change
             if (AppState.inRoom && AppState.isHost && AppState.socket) {
@@ -120,6 +119,9 @@ export const Player = {
         
         AppState.currentSong = song;
         this.updateLikeButtons();
+        
+        // Extract colors from album art for AI mood colors
+        ColorExtractor.updateColorsFromAlbum(imageUrl);
     },
     
     /**
@@ -195,10 +197,15 @@ export const Player = {
      * Update progress bar and time
      */
     updateProgress() {
+        if (!DOM.audioPlayer || !DOM.currentTime || !DOM.progressSlider || !DOM.progressFill) {
+            console.warn('⚠️ Missing DOM elements for progress update');
+            return;
+        }
+        
         const current = DOM.audioPlayer.currentTime;
         const duration = DOM.audioPlayer.duration;
         
-        if (!isNaN(current) && !isNaN(duration)) {
+        if (!isNaN(current) && !isNaN(duration) && duration > 0) {
             DOM.currentTime.textContent = formatTime(current);
             DOM.progressSlider.value = current;
             
@@ -229,6 +236,12 @@ export const Player = {
     updateVolume() {
         const volume = DOM.volumeSlider.value / 100;
         DOM.audioPlayer.volume = volume;
+        
+        // Update visual fill bar
+        if (DOM.volumeFill) {
+            DOM.volumeFill.style.width = DOM.volumeSlider.value + '%';
+        }
+        
         this.updateVolumeSliderBackground();
         this.updateVolumeIcon(volume);
     },

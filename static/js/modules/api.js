@@ -8,19 +8,41 @@ export const API = {
      * Search for songs
      * @param {string} query - Search query
      * @param {boolean} includeLyrics - Include lyrics in response
+     * @param {number} limit - Limit results for faster response
      * @returns {Promise<Object>} Search results
      */
-    async search(query, includeLyrics = false) {
+    async search(query, includeLyrics = false, limit = null) {
         const params = new URLSearchParams({
             q: query,
             lyrics: includeLyrics.toString()
         });
         
-        const response = await fetch(`/api/search?${params}`);
-        if (!response.ok) {
-            throw new Error(`Search failed: ${response.statusText}`);
+        // Add limit for suggestions (faster response)
+        if (limit) {
+            params.append('limit', limit.toString());
         }
-        return response.json();
+        
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+        
+        try {
+            const response = await fetch(`/api/search?${params}`, {
+                signal: controller.signal
+            });
+            clearTimeout(timeoutId);
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Search failed: ${response.status} - ${errorText}`);
+            }
+            return response.json();
+        } catch (error) {
+            clearTimeout(timeoutId);
+            if (error.name === 'AbortError') {
+                throw new Error('Search timeout - please try again');
+            }
+            throw error;
+        }
     },
     
     /**

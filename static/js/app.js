@@ -10,6 +10,7 @@ import { Search } from './modules/search.js';
 import { RoomManager } from './modules/room.js';
 import { LyricsManager } from './modules/lyrics.js';
 import { PlaylistManager } from './modules/playlist.js';
+import { ColorExtractor } from './modules/color-extractor.js';
 import { updateGreeting, debounce } from './modules/utils.js';
 import { API } from './modules/api.js';
 
@@ -62,6 +63,8 @@ function setupEventListeners() {
     // Search functionality
     if (DOM.searchInput) {
         console.log('✅ Attaching search input listeners');
+        
+        // Enter key performs full search
         DOM.searchInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 console.log('⏎ Enter pressed in search');
@@ -69,15 +72,48 @@ function setupEventListeners() {
             }
         });
         
-        // Real-time search with debounce
-        const debouncedSearch = debounce(() => {
+        // Live suggestions as user types (instant for cached, debounced for API)
+        let suggestionTimeout;
+        DOM.searchInput.addEventListener('input', () => {
             const query = DOM.searchInput.value.trim();
-            if (query.length >= 3) {
-                Search.performSearch();
+            Search._lastQuery = query;
+            
+            if (query.length < 1) {
+                Search.hideSuggestions();
+                clearTimeout(suggestionTimeout);
+                return;
             }
-        }, 500);
+            
+            // Check cache immediately for instant response
+            const cacheKey = query.toLowerCase().trim();
+            const cached = Search._cache.get(cacheKey);
+            if (cached && Date.now() - cached.timestamp < Search._cacheTimeout) {
+                Search.displaySuggestions(cached.results.slice(0, 5));
+                clearTimeout(suggestionTimeout);
+                return;
+            }
+            
+            // Debounce API calls for new queries
+            clearTimeout(suggestionTimeout);
+            suggestionTimeout = setTimeout(() => {
+                Search.showLiveSuggestions(query);
+            }, 100); // Reduced to 100ms
+        });
         
-        DOM.searchInput.addEventListener('input', debouncedSearch);
+        // Focus shows suggestions if there's a query
+        DOM.searchInput.addEventListener('focus', () => {
+            const query = DOM.searchInput.value.trim();
+            if (query.length >= 1) {
+                Search.showLiveSuggestions(query);
+            }
+        });
+        
+        // Click outside to hide suggestions
+        document.addEventListener('click', (e) => {
+            if (!DOM.searchInput.contains(e.target) && !DOM.searchSuggestions?.contains(e.target)) {
+                Search.hideSuggestions();
+            }
+        });
     }
     
     // Test API button
@@ -182,8 +218,16 @@ function setupEventListeners() {
     // Like current song
     DOM.likeCurrentSongBtn?.addEventListener('click', () => Player.toggleLikeCurrentSong());
     
-    // Lyrics button
-    DOM.lyricsBtn?.addEventListener('click', () => LyricsManager.toggleLyricsTerminal());
+    // Lyrics button - fetch and show lyrics when clicked
+    DOM.lyricsBtn?.addEventListener('click', () => {
+        const isVisible = !DOM.lyricsTerminal?.classList.contains('hidden');
+        if (!isVisible && AppState.currentSongId) {
+            // Fetch lyrics when opening
+            LyricsManager.fetchLyrics(AppState.currentSongId);
+        } else {
+            LyricsManager.toggleLyricsTerminal();
+        }
+    });
     DOM.closeLyricsBtn?.addEventListener('click', () => LyricsManager.hideLyricsTerminal());
     
     // Navigation items
@@ -236,7 +280,6 @@ function setupEventListeners() {
         sidebarOverlay.addEventListener('click', toggleSidebar);
     }
 }
-
 // Initialize app when DOM is ready
 document.addEventListener('DOMContentLoaded', initializeApp);
 
@@ -248,5 +291,6 @@ window.Syncano = {
     RoomManager,
     LyricsManager,
     PlaylistManager,
+    ColorExtractor,
     API
 };

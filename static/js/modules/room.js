@@ -62,11 +62,11 @@ export const RoomManager = {
             
             this.hideModal();
             this.updateRoomUI();
-            showSyncIndicator('🎧 Room created! Share ID: ' + AppState.currentRoom, 'success');
+            showSyncIndicator('🎵 Blend created! Share ID: ' + AppState.currentRoom, 'success');
             
-            // Copy room ID to clipboard
+            // Copy blend ID to clipboard
             navigator.clipboard.writeText(AppState.currentRoom).then(() => {
-                showSyncIndicator('Room ID copied to clipboard!', 'success');
+                showSyncIndicator('Blend ID copied to clipboard!', 'success');
             });
         });
         
@@ -85,17 +85,17 @@ export const RoomManager = {
                 this.syncWithRoom(data.current_song, data.is_playing, data.current_time);
             }
             
-            showSyncIndicator('Joined room successfully!', 'success');
+            showSyncIndicator('🎵 Joined blend successfully!', 'success');
         });
         
         socket.on('user_joined', (data) => {
             this.updateUsersList(data.users);
-            showSyncIndicator(data.username + ' joined the room', 'success');
+            showSyncIndicator(data.username + ' joined the blend', 'success');
         });
         
         socket.on('user_left', (data) => {
             this.updateUsersList(data.users);
-            showSyncIndicator(data.username + ' left the room', 'info');
+            showSyncIndicator(data.username + ' left the blend', 'info');
         });
         
         socket.on('song_changed', (data) => {
@@ -139,7 +139,7 @@ export const RoomManager = {
             console.log('📡 New host assigned:', data);
             if (data.new_host === socket.id) {
                 AppState.isHost = true;
-                showSyncIndicator('You are now the host!', 'success');
+                showSyncIndicator('👑 You are now the blend host!', 'success');
                 this.updateRoomUI();
             }
         });
@@ -151,29 +151,29 @@ export const RoomManager = {
     },
     
     /**
-     * Show create room modal
+     * Show create blend modal
      */
     showCreateRoomModal() {
-        console.log('🎪 Opening create room modal');
-        DOM.modalTitle.textContent = 'Create Room';
+        console.log('🎵 Opening create blend modal');
+        DOM.modalTitle.textContent = 'Create Blend';
         DOM.roomIdGroup.classList.add('hidden');
         DOM.usernameInput.value = '';
         DOM.roomIdInput.value = '';
-        DOM.modalActionBtn.textContent = 'Create Room';
+        DOM.modalActionBtn.textContent = 'Create Blend';
         DOM.modalActionBtn.dataset.action = 'create';
         DOM.roomModal.classList.remove('hidden');
         console.log('✅ Modal should be visible now');
     },
     
     /**
-     * Show join room modal
+     * Show join blend modal
      */
     showJoinRoomModal() {
-        DOM.modalTitle.textContent = 'Join Room';
+        DOM.modalTitle.textContent = 'Join Blend';
         DOM.roomIdGroup.classList.remove('hidden');
         DOM.usernameInput.value = '';
         DOM.roomIdInput.value = '';
-        DOM.modalActionBtn.textContent = 'Join Room';
+        DOM.modalActionBtn.textContent = 'Join Blend';
         DOM.modalActionBtn.dataset.action = 'join';
         DOM.roomModal.classList.remove('hidden');
     },
