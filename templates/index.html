@@ -43,6 +43,19 @@
         .animate-pulse-green {
             animation: pulse-green 2s infinite;
         }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #282828;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #3E3E3E;
+        }
     </style>
 </head>
 <body class="bg-black text-white h-screen overflow-hidden">
@@ -75,6 +88,16 @@
                     <span class="font-semibold">Liked Songs</span>
                 </a>
             </nav>
+            
+            <div class="border-t border-spotify-gray my-2"></div>
+            
+            <!-- Playlists Section -->
+            <div class="p-4">
+                <h3 class="text-spotify-light-gray text-xs uppercase font-bold mb-3 tracking-wider">Playlists</h3>
+                <div id="playlistsContainer" class="space-y-1 max-h-48 overflow-y-auto custom-scrollbar">
+                    <!-- Playlists will be dynamically loaded here -->
+                </div>
+            </div>
             
             <div class="border-t border-spotify-gray my-2"></div>
             
@@ -204,6 +227,19 @@
                         </div>
                     </div>
                     <div id="likedContainer" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4"></div>
+                </section>
+                
+                <!-- Playlist View -->
+                <section id="playlistView" class="hidden">
+                    <div class="flex items-center gap-4 mb-8">
+                        <img id="playlistImage" class="w-20 h-20 rounded-lg shadow-lg" alt="Playlist">
+                        <div>
+                            <p class="text-xs uppercase tracking-wider">Playlist</p>
+                            <h2 id="playlistTitle" class="text-2xl md:text-3xl font-bold"></h2>
+                            <p id="playlistDescription" class="text-sm text-spotify-light-gray mt-1"></p>
+                        </div>
+                    </div>
+                    <div id="playlistContainer" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4"></div>
                 </section>
             </div>
         </main>

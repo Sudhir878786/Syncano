@@ -16,6 +16,14 @@ export const DOM = {
     likedContainer: null,
     likeCurrentSongBtn: null,
     
+    // Playlist elements
+    playlistsContainer: null,
+    playlistView: null,
+    playlistContainer: null,
+    playlistImage: null,
+    playlistTitle: null,
+    playlistDescription: null,
+    
     // Room elements
     createRoomBtn: null,
     joinRoomBtn: null,
@@ -64,6 +72,14 @@ export const DOM = {
         this.likedSongsSection = document.getElementById('likedSongs');
         this.likedContainer = document.getElementById('likedContainer');
         this.likeCurrentSongBtn = document.getElementById('likeCurrentSongBtn');
+        
+        // Playlists
+        this.playlistsContainer = document.getElementById('playlistsContainer');
+        this.playlistView = document.getElementById('playlistView');
+        this.playlistContainer = document.getElementById('playlistContainer');
+        this.playlistImage = document.getElementById('playlistImage');
+        this.playlistTitle = document.getElementById('playlistTitle');
+        this.playlistDescription = document.getElementById('playlistDescription');
         
         // Room
         this.createRoomBtn = document.getElementById('createRoomBtn');

@@ -9,6 +9,7 @@ import { Player } from './modules/player.js';
 import { Search } from './modules/search.js';
 import { RoomManager } from './modules/room.js';
 import { LyricsManager } from './modules/lyrics.js';
+import { PlaylistManager } from './modules/playlist.js';
 import { updateGreeting, debounce } from './modules/utils.js';
 import { API } from './modules/api.js';
 
@@ -32,6 +33,10 @@ function initializeApp() {
     // Initialize Socket.IO for rooms
     RoomManager.initializeSocket();
     console.log('🔌 Socket.IO initialized');
+    
+    // Initialize playlists
+    PlaylistManager.renderPlaylistsSidebar();
+    console.log('🎵 Playlists initialized');
     
     // Update greeting
     updateGreeting();
@@ -242,5 +247,6 @@ window.Syncano = {
     Search,
     RoomManager,
     LyricsManager,
+    PlaylistManager,
     API
 };
