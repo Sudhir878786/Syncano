@@ -26,7 +26,8 @@ class Config:
     SOCKETIO_CORS_ALLOWED_ORIGINS = os.environ.get('CORS_ORIGINS', '*')
     SOCKETIO_PING_TIMEOUT = 60
     SOCKETIO_PING_INTERVAL = 25
-    SOCKETIO_ASYNC_MODE = 'eventlet'  # Required for Render with persistent connections
+    # Use threading by default, eventlet if explicitly set and available
+    SOCKETIO_ASYNC_MODE = os.environ.get('SOCKETIO_ASYNC_MODE', 'threading')
     
     # Session Settings
     PERMANENT_SESSION_LIFETIME = timedelta(hours=24)

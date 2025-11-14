@@ -61,19 +61,30 @@ def create_app(config_name='development'):
     
     logger.info("Registered blueprints: main, api")
     
-    # Initialize Socket.IO with eventlet for Render persistent connections
+    # Initialize Socket.IO with appropriate async_mode
+    # Try eventlet first, fall back to threading if not available
+    async_mode = app.config.get('SOCKETIO_ASYNC_MODE', 'threading')
+    
+    # Check if eventlet is available and working
+    if async_mode == 'eventlet':
+        try:
+            import eventlet
+            eventlet.monkey_patch()
+            logger.info("Using eventlet async_mode for Socket.IO")
+        except Exception as e:
+            logger.warning(f"Eventlet not available ({e}), falling back to threading")
+            async_mode = 'threading'
+    
     socketio.init_app(
         app, 
         cors_allowed_origins=app.config['SOCKETIO_CORS_ALLOWED_ORIGINS'],
-        async_mode=app.config.get('SOCKETIO_ASYNC_MODE', 'eventlet'),
+        async_mode=async_mode,
         logger=True,
         engineio_logger=True,
         ping_timeout=app.config['SOCKETIO_PING_TIMEOUT'],
         ping_interval=app.config['SOCKETIO_PING_INTERVAL'],
         max_http_buffer_size=1000000,
-        # Allow upgrading from polling to websocket
         allow_upgrades=True,
-        # Transports order: start with polling, upgrade to websocket
         transports=['polling', 'websocket']
     )
     

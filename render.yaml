@@ -7,7 +7,7 @@ services:
     plan: free
     branch: main  # or your default branch
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn --worker-class eventlet -w 1 --bind 0.0.0.0:10000 --timeout 120 "run:app"
+    startCommand: gunicorn --worker-class gevent -w 1 --bind 0.0.0.0:10000 --timeout 120 --log-level info "run:app"
     
     envVars:
       - key: FLASK_ENV
