@@ -15,6 +15,42 @@ import { updateGreeting, debounce } from './modules/utils.js';
 import { API } from './modules/api.js';
 
 /**
+ * Keepalive mechanism to prevent Render from sleeping
+ * Pings the health endpoint every 5 minutes
+ */
+function startKeepalive() {
+    // Ping every 5 minutes to keep backend alive
+    setInterval(async () => {
+        try {
+            const backendUrl = window.BACKEND_URL || 'http://localhost:10000';
+            const response = await fetch(`${backendUrl}/health`, {
+                method: 'GET',
+                credentials: 'include'
+            });
+            if (response.ok) {
+                console.log('💓 Keepalive ping successful');
+            }
+        } catch (error) {
+            console.warn('💔 Keepalive ping failed:', error.message);
+        }
+    }, 5 * 60 * 1000); // 5 minutes
+    
+    // Initial ping
+    setTimeout(async () => {
+        try {
+            const backendUrl = window.BACKEND_URL || 'http://localhost:10000';
+            await fetch(`${backendUrl}/health`, {
+                method: 'GET',
+                credentials: 'include'
+            });
+            console.log('💓 Initial keepalive ping sent');
+        } catch (error) {
+            console.warn('💔 Initial keepalive ping failed:', error.message);
+        }
+    }, 10000); // 10 seconds after load
+}
+
+/**
  * Initialize the application
  */
 function initializeApp() {
@@ -34,6 +70,10 @@ function initializeApp() {
     // Initialize Socket.IO for rooms
     RoomManager.initializeSocket();
     console.log('🔌 Socket.IO initialized');
+    
+    // Initialize keepalive for Render (prevents cold starts)
+    startKeepalive();
+    console.log('💓 Keepalive started');
     
     // Initialize playlists
     PlaylistManager.renderPlaylistsSidebar();

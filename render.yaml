@@ -3,11 +3,19 @@ services:
   - type: web
     name: syncano-backend
     env: python
+    runtime: python-3.12
     region: oregon  # Choose region closest to your users
-    plan: free
+    plan: starter  # Upgrade from free to starter for always-on + auto-scaling
     branch: main  # or your default branch
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn -w 1 --bind 0.0.0.0:10000 --timeout 120 --log-level info "run:app"
+    startCommand: gunicorn -w 2 --threads 4 --worker-class gthread --bind 0.0.0.0:$PORT --timeout 180 --keepalive 75 --log-level info --access-logfile - --error-logfile - "run:app"
+    
+    # Auto-scaling configuration (available on Starter plan and above)
+    scaling:
+      minInstances: 1  # Always keep at least 1 instance running
+      maxInstances: 3  # Scale up to 3 instances under load
+      targetMemoryPercent: 70
+      targetCPUPercent: 70
     
     envVars:
       - key: FLASK_ENV
@@ -40,6 +48,26 @@ services:
       - key: LOG_LEVEL
         value: INFO
     
+    # Health monitoring
     healthCheckPath: /health
     
+    # Zero-downtime deployments
     autoDeploy: true
+    
+    # Disk storage for logs and temp files
+    disk:
+      name: syncano-disk
+      mountPath: /opt/render/project/logs
+      sizeGB: 1
+    
+    # Advanced settings for high availability
+    pullRequestPreviewsEnabled: false
+    rootDirectory: .
+    
+    # Health check settings
+    healthCheck:
+      path: /health
+      intervalSeconds: 60
+      timeoutSeconds: 10
+      unhealthyThreshold: 3
+      healthyThreshold: 2

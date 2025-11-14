@@ -25,12 +25,15 @@ export const RoomManager = {
             upgrade: true,
             reconnection: true,
             reconnectionDelay: 1000,
-            reconnectionDelayMax: 5000,
+            reconnectionDelayMax: 10000,  // Increased from 5000 to allow longer backoff
             reconnectionAttempts: Infinity,  // Keep trying to reconnect
-            timeout: 20000,
+            timeout: 30000,  // Increased from 20000 to match backend timeout
             forceNew: false,
             withCredentials: true,  // Important for CORS
-            autoConnect: true
+            autoConnect: true,
+            // Heartbeat settings to match backend
+            pingTimeout: 120000,  // 2 minutes to match backend ping_timeout
+            pingInterval: 25000   // 25 seconds to match backend ping_interval
         });
         
         this.setupSocketHandlers();
@@ -60,6 +63,15 @@ export const RoomManager = {
         socket.on('reconnect', (attemptNumber) => {
             console.log('🔄 Socket.IO reconnected after', attemptNumber, 'attempts');
             showSyncIndicator('Reconnected to server', 'success');
+            
+            // If we were in a room, try to rejoin
+            if (AppState.currentRoom && AppState.username) {
+                console.log('🔄 Rejoining room after reconnect:', AppState.currentRoom);
+                socket.emit('join_room', { 
+                    room_id: AppState.currentRoom, 
+                    username: AppState.username 
+                });
+            }
         });
         
         socket.on('room_created', (data) => {

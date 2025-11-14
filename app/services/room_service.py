@@ -53,10 +53,11 @@ class RoomService:
                     connection_kwargs['ssl_cert_reqs'] = ssl.CERT_NONE
                     connection_kwargs['ssl_check_hostname'] = False
                 
-                # Create connection pool for better performance
+                # Create connection pool for production-grade performance
+                # Increased pool size for high concurrency
                 self.redis_client = redis.from_url(
                     redis_url, 
-                    max_connections=20,
+                    max_connections=50,  # Increased from 20 for scalability
                     **connection_kwargs
                 )
                 

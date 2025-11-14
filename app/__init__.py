@@ -55,6 +55,14 @@ def create_app(config_name='development'):
     
     logger.info(f"Initialized services: MusicService, RoomService")
     
+    # Initialize middleware for production
+    from .middleware import RateLimiter, CacheManager
+    redis_client = app.room_service.redis_client if app.room_service.use_redis else None
+    app.rate_limiter = RateLimiter(redis_client=redis_client)
+    app.cache_manager = CacheManager(redis_client=redis_client, default_ttl=300)
+    
+    logger.info(f"Initialized middleware: RateLimiter, CacheManager")
+    
     # Register blueprints
     app.register_blueprint(main_bp)
     app.register_blueprint(api_bp)
@@ -83,8 +91,9 @@ def create_app(config_name='development'):
         engineio_logger=True,
         ping_timeout=app.config['SOCKETIO_PING_TIMEOUT'],
         ping_interval=app.config['SOCKETIO_PING_INTERVAL'],
-        max_http_buffer_size=1000000,
+        max_http_buffer_size=app.config.get('SOCKETIO_MAX_HTTP_BUFFER_SIZE', 100000000),
         allow_upgrades=True,
+        always_connect=app.config.get('SOCKETIO_ALWAYS_CONNECT', True),
         transports=['polling', 'websocket']
     )
     

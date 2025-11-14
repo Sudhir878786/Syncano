@@ -1,1 +1,1 @@
-web: gunicorn -w 1 --bind 0.0.0.0:$PORT --timeout 120 --log-level info "run:app"
+web: gunicorn -w 2 --threads 4 --worker-class gthread --bind 0.0.0.0:$PORT --timeout 180 --keepalive 75 --max-requests 1000 --max-requests-jitter 50 --log-level info --access-logfile - --error-logfile - "run:app"

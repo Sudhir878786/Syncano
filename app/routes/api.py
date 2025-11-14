@@ -19,12 +19,23 @@ def get_music_service():
 def search():
     """
     Search for songs, artists, or albums.
+    Rate limit: 30 requests per minute per IP
     
     Query Parameters:
         q: Search query (required)
         lyrics: Include lyrics (optional, default: false)
         limit: Maximum results (optional)
     """
+    # Rate limiting
+    rate_limiter = current_app.rate_limiter
+    allowed, remaining = rate_limiter.check_rate_limit(limit=30, window=60)
+    if not allowed:
+        return jsonify({
+            'error': 'Rate limit exceeded',
+            'message': 'Maximum 30 searches per minute',
+            'retry_after': 60
+        }), 429
+    
     query = request.args.get('q', '').strip()
     
     if not query:
@@ -36,14 +47,30 @@ def search():
         
         logger.info(f"Search request: '{query}'")
         
+        # Check cache first
+        cache_manager = current_app.cache_manager
+        cache_key = f"search:{query}:{include_lyrics}:{limit}"
+        cached_result = cache_manager.get(cache_key)
+        
+        if cached_result:
+            logger.debug(f"Cache hit for search: {query}")
+            cached_result['cached'] = True
+            return jsonify(cached_result)
+        
         service = get_music_service()
         results = service.search_songs(query, include_lyrics=include_lyrics, limit=limit)
         
-        return jsonify({
+        response_data = {
             'results': results,
             'total': len(results),
-            'query': query
-        })
+            'query': query,
+            'cached': False
+        }
+        
+        # Cache for 5 minutes
+        cache_manager.set(cache_key, response_data, ttl=300)
+        
+        return jsonify(response_data)
         
     except Exception as e:
         logger.error(f"Search error: {e}")
@@ -55,6 +82,7 @@ def search():
 def get_song(song_id):
     """
     Get detailed information about a song.
+    Rate limit: 60 requests per minute per IP
     
     Path Parameters:
         song_id: Song ID
@@ -63,6 +91,15 @@ def get_song(song_id):
         lyrics: Include lyrics (optional, default: false)
     """
     try:
+        # Rate limiting
+        rate_limiter = current_app.rate_limiter
+        allowed, remaining = rate_limiter.check_rate_limit(limit=60, window=60)
+        if not allowed:
+            return jsonify({
+                'error': 'Rate limit exceeded',
+                'message': 'Maximum 60 requests per minute'
+            }), 429
+        
         include_lyrics = request.args.get('lyrics', 'false').lower() == 'true'
         
         service = get_music_service()
@@ -139,11 +176,21 @@ def get_playlist(playlist_id):
 def get_lyrics(song_id):
     """
     Get lyrics for a song.
+    Rate limit: 40 requests per minute per IP
     
     Path Parameters:
         song_id: Song ID
     """
     try:
+        # Rate limiting
+        rate_limiter = current_app.rate_limiter
+        allowed, remaining = rate_limiter.check_rate_limit(limit=40, window=60)
+        if not allowed:
+            return jsonify({
+                'error': 'Rate limit exceeded',
+                'message': 'Maximum 40 requests per minute'
+            }), 429
+        
         service = get_music_service()
         lyrics = service.get_lyrics(song_id)
         
