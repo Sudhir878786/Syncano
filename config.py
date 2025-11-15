@@ -24,8 +24,8 @@ class Config:
     
     # Socket.IO Settings - Optimized for stable connections
     SOCKETIO_CORS_ALLOWED_ORIGINS = os.environ.get('CORS_ORIGINS', '*')
-    SOCKETIO_PING_TIMEOUT = 60  # 60 seconds
-    SOCKETIO_PING_INTERVAL = 25  # 25 seconds
+    SOCKETIO_PING_TIMEOUT = 120  # 120 seconds (increased for serverless)
+    SOCKETIO_PING_INTERVAL = 30  # 30 seconds
     SOCKETIO_MAX_HTTP_BUFFER_SIZE = 100000000  # 100MB for large payloads
     SOCKETIO_ALWAYS_CONNECT = True
     # Use threading by default, eventlet if explicitly set and available
@@ -85,9 +85,9 @@ class ProductionConfig(Config):
         'https://*.vercel.app'
     )
     
-    # Longer timeouts for production to handle network latency
-    SOCKETIO_PING_TIMEOUT = 60  # 60 seconds
-    SOCKETIO_PING_INTERVAL = 25  # 25 seconds
+    # Longer timeouts for production to handle network latency and serverless cold starts
+    SOCKETIO_PING_TIMEOUT = 120  # 120 seconds
+    SOCKETIO_PING_INTERVAL = 30  # 30 seconds
 
 
 class TestingConfig(Config):

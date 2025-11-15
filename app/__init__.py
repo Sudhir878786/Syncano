@@ -97,12 +97,13 @@ def create_app(config_name='development'):
         async_mode=async_mode,
         logger=True,
         engineio_logger=True,
-        ping_timeout=60,  # 60 seconds
-        ping_interval=25,  # 25 seconds
+        ping_timeout=120,  # 120 seconds - longer for Render/Vercel
+        ping_interval=30,  # 30 seconds
         max_http_buffer_size=app.config.get('SOCKETIO_MAX_HTTP_BUFFER_SIZE', 100000000),
         allow_upgrades=True,
-        transports=['websocket', 'polling'],  # Try websocket first
-        cors_credentials=True
+        transports=['websocket', 'polling'],
+        cors_credentials=True,
+        always_connect=True  # Keep connection alive
     )
     
     # Register Socket.IO events

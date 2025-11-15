@@ -49,58 +49,69 @@ export const RoomManager = {
             console.log('✅ Socket.IO connected:', socket.id);
             console.log('Transport:', socket.io.engine.transport.name);
             
-            // Only show notification on FIRST connect or after failed reconnection
-            if (!AppState.socketConnected) {
-                showSyncIndicator('Connected to server', 'success');
-                AppState.socketConnected = true;
-            }
+            // Mark as connected - no notifications
+            AppState.socketConnected = true;
+            AppState.connectionErrorShown = false;
             
             // If we were in a room before disconnect, rejoin
             if (AppState.currentRoom && AppState.username) {
                 console.log('🔄 Auto-rejoining room after connect:', AppState.currentRoom);
-                socket.emit('join_room', { 
-                    room_id: AppState.currentRoom, 
-                    username: AppState.username 
-                });
+                // Add a small delay to ensure server is ready
+                setTimeout(() => {
+                    socket.emit('join_room', { 
+                        room_id: AppState.currentRoom, 
+                        username: AppState.username 
+                    });
+                }, 100);
             }
         });
         
         socket.on('connect_error', (error) => {
             console.error('❌ Socket.IO connection error:', error.message);
-            console.error('Error details:', error);
-            // Only show error notification after multiple failed attempts
+            // Only show error after multiple failures
             if (!AppState.connectionErrorShown) {
-                showSyncIndicator('Connection error. Retrying...', 'error');
                 AppState.connectionErrorShown = true;
-                setTimeout(() => { AppState.connectionErrorShown = false; }, 10000);
+                // Show error only after 3 failed attempts (15 seconds)
+                setTimeout(() => {
+                    if (!AppState.socketConnected) {
+                        showSyncIndicator('Connection issue. Please check your internet.', 'error');
+                    }
+                }, 15000);
             }
         });
         
         socket.on('disconnect', (reason) => {
             console.log('🔌 Socket.IO disconnected:', reason);
+            AppState.socketConnected = false;
             
-            // Only show notification for permanent disconnects - not automatic reconnections
+            // Silent handling - Socket.IO will auto-reconnect
+            // Only reconnect manually if server explicitly disconnected us
             if (reason === 'io server disconnect') {
-                console.log('Server disconnected us, reconnecting...');
-                AppState.socketConnected = false;
+                console.log('Server disconnected - will reconnect');
                 socket.connect();
-            } else if (reason === 'transport close' || reason === 'transport error') {
-                // Normal reconnection - don't show notification
-                console.log('Transport issue, Socket.IO will auto-reconnect');
-                AppState.socketConnected = false;
             }
-            // Don't show any notifications for disconnect - only show if reconnection fails
+            // Never show notifications for normal disconnects/reconnects
         });
         
         socket.on('reconnect', (attemptNumber) => {
             console.log('🔄 Socket.IO reconnected after', attemptNumber, 'attempts');
-            console.log('Transport:', socket.io.engine.transport.name);
-            // Don't show notification for automatic reconnects - too noisy
             AppState.socketConnected = true;
+            AppState.connectionErrorShown = false;
+            
+            // If we were in a room, rejoin it
+            if (AppState.currentRoom && AppState.username) {
+                console.log('🔄 Rejoining room after reconnect:', AppState.currentRoom);
+                setTimeout(() => {
+                    socket.emit('join_room', { 
+                        room_id: AppState.currentRoom, 
+                        username: AppState.username 
+                    });
+                }, 100);
+            }
         });
         
         socket.on('reconnect_attempt', (attemptNumber) => {
-            console.log(`🔄 Reconnection attempt ${attemptNumber}...`);
+            console.log(`🔄 Reconnection attempt ${attemptNumber}`);
         });
         
         socket.on('reconnect_error', (error) => {
@@ -108,8 +119,8 @@ export const RoomManager = {
         });
         
         socket.on('reconnect_failed', () => {
-            console.error('❌ Reconnection failed after all attempts');
-            showSyncIndicator('Connection lost. Please refresh.', 'error');
+            console.error('❌ All reconnection attempts failed');
+            showSyncIndicator('Connection lost. Please refresh the page.', 'error');
             AppState.socketConnected = false;
         });
         
