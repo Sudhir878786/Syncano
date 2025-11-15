@@ -12,27 +12,41 @@ import { showSyncIndicator } from './utils.js';
 export const RoomManager = {
     /**
      * Initialize Socket.IO connection to Render backend
+     * Handles cold starts by waking up the server first
      */
-    initializeSocket() {
+    async initializeSocket() {
         // Get backend URL from environment or use default
         const backendUrl = window.BACKEND_URL || 'http://localhost:10000';
+        
+        console.log('🔌 Waking up server (cold start handling)...');
+        
+        // Wake up Render server with health check (handles cold starts)
+        try {
+            const wakeUpResponse = await fetch(`${backendUrl}/health`, {
+                method: 'GET',
+                signal: AbortSignal.timeout(90000)  // 90 second timeout for cold starts
+            });
+            console.log('✅ Server is awake:', wakeUpResponse.status);
+        } catch (error) {
+            console.warn('⚠️ Wake-up request failed, continuing anyway:', error.message);
+        }
         
         console.log('🔌 Connecting to Socket.IO backend:', backendUrl);
         
         // Configure Socket.IO for production serverless (Vercel + Render)
         AppState.socket = io(backendUrl, {
-            transports: ['websocket', 'polling'],
+            transports: ['polling', 'websocket'],  // Start with polling for cold starts
             upgrade: true,
             reconnection: true,
-            reconnectionDelay: 2000,
-            reconnectionDelayMax: 10000,
+            reconnectionDelay: 3000,
+            reconnectionDelayMax: 15000,
             reconnectionAttempts: Infinity,  // Never stop trying
-            timeout: 30000,
+            timeout: 90000,  // 90 seconds for cold starts
             forceNew: false,
             withCredentials: true,
             autoConnect: true,
             // Heartbeat settings - aggressive for serverless
-            pingTimeout: 180000,  // 3 minutes for cold starts
+            pingTimeout: 180000,  // 3 minutes
             pingInterval: 45000   // 45 seconds
         });
         
@@ -265,9 +279,24 @@ export const RoomManager = {
         }
         
         if (!AppState.socket || !AppState.socket.connected) {
-            alert('Not connected to server. Please refresh and try again.');
-            console.error('Socket not connected:', AppState.socket);
-            return;
+            // Show loading and retry connection
+            showSyncIndicator('Waking up server (may take 30-60s on first use)...', 'syncing');
+            console.warn('Socket not connected, attempting to connect...');
+            
+            // Try to connect if not already trying
+            if (!AppState.socket) {
+                await this.initializeSocket();
+            } else if (!AppState.socket.connected) {
+                AppState.socket.connect();
+            }
+            
+            // Wait up to 90 seconds for connection
+            const connected = await this.waitForConnection(90000);
+            if (!connected) {
+                alert('Server is taking longer than expected to start. Please try again in 30 seconds.');
+                showSyncIndicator('Connection timeout', 'error');
+                return;
+            }
         }
         
         console.log('📤 Creating room for user:', name);
@@ -293,14 +322,52 @@ export const RoomManager = {
         }
         
         if (!AppState.socket || !AppState.socket.connected) {
-            alert('Not connected to server. Please refresh and try again.');
-            console.error('Socket not connected:', AppState.socket);
-            return;
+            // Show loading and retry connection
+            showSyncIndicator('Waking up server (may take 30-60s on first use)...', 'syncing');
+            console.warn('Socket not connected, attempting to connect...');
+            
+            // Try to connect if not already trying
+            if (!AppState.socket) {
+                await this.initializeSocket();
+            } else if (!AppState.socket.connected) {
+                AppState.socket.connect();
+            }
+            
+            // Wait up to 90 seconds for connection
+            const connected = await this.waitForConnection(90000);
+            if (!connected) {
+                alert('Server is taking longer than expected to start. Please try again in 30 seconds.');
+                showSyncIndicator('Connection timeout', 'error');
+                return;
+            }
         }
         
         console.log('📤 Joining room:', roomId, 'as user:', name);
         showSyncIndicator('Joining room...', 'syncing');
         AppState.socket.emit('join_room', { room_id: roomId, username: name });
+    },
+    
+    /**
+     * Wait for Socket.IO connection with timeout
+     */
+    waitForConnection(timeoutMs = 90000) {
+        return new Promise((resolve) => {
+            if (AppState.socket?.connected) {
+                resolve(true);
+                return;
+            }
+            
+            const startTime = Date.now();
+            const checkInterval = setInterval(() => {
+                if (AppState.socket?.connected) {
+                    clearInterval(checkInterval);
+                    resolve(true);
+                } else if (Date.now() - startTime > timeoutMs) {
+                    clearInterval(checkInterval);
+                    resolve(false);
+                }
+            }, 500);
+        });
     },
     
     /**

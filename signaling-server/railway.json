@@ -1,0 +1,21 @@
+# Railway Deployment for Signaling Server
+# Deploy with: railway up
+
+version: '2'
+
+services:
+  signaling:
+    name: melodexa-signaling
+    runtime: nodejs
+    buildCommand: cd signaling-server && npm install
+    startCommand: cd signaling-server && npm start
+    healthcheck:
+      path: /health
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    env:
+      NODE_ENV: production
+      PORT: 3001
+    volumes:
+      - /signaling-server/node_modules

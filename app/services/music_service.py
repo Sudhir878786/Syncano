@@ -1,6 +1,6 @@
 """
 Music API Service
-Handles all interactions with music API endpoints for Syncano.
+Handles all interactions with music API endpoints for Melodexa.
 """
 import requests
 import json

@@ -1,7 +1,12 @@
 """
-Main entry point for Syncano Music Streaming Application.
+Main entry point for Melodexa Music Streaming Application.
 Run this file to start the server.
 Can be used directly (python run.py) or with gunicorn (gunicorn run:app)
+
+WebRTC Architecture:
+- Flask serves REST API for music service
+- Signaling handled by separate Node.js server
+- Audio streaming via WebRTC P2P
 """
 import os
 import sys
@@ -9,7 +14,7 @@ import sys
 # Add project root to path
 sys.path.insert(0, os.path.dirname(__file__))
 
-from app import create_app, socketio
+from app import create_app
 import logging
 
 logger = logging.getLogger(__name__)
@@ -30,27 +35,27 @@ def main():
     
     # Print startup banner
     print("=" * 60)
-    print("🎧 Syncano - Listen together, anywhere")
+    print("🎧 Melodexa - Listen together, anywhere")
     print("=" * 60)
     print(f"Environment: {env}")
     print(f"Server URL: http://{host}:{port}")
     print(f"Debug mode: {'ON' if debug else 'OFF'}")
     print(f"Built-in JioSaavn API: ✓ Active")
+    print(f"WebRTC P2P Audio: ✓ Enabled")
+    print(f"Note: Run signaling server separately on port 3001")
     print("=" * 60)
     print("Press Ctrl+C to stop the server")
     print("=" * 60)
     
-    logger.info(f"Starting Syncano server on {host}:{port}")
+    logger.info(f"Starting Melodexa Flask API server on {host}:{port}")
     
     try:
-        # Run app with Socket.IO
-        socketio.run(
-            app,
+        # Run Flask app without Socket.IO (standard WSGI)
+        app.run(
             host=host,
             port=port,
             debug=debug,
-            use_reloader=debug,
-            log_output=debug
+            use_reloader=debug
         )
     except KeyboardInterrupt:
         print("\n" + "=" * 60)

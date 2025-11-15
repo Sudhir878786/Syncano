@@ -1,6 +1,6 @@
 """
 Application Configuration
-Centralized configuration management for the Syncano music streaming application.
+Centralized configuration management for the Melodexa music streaming application.
 """
 import os
 from datetime import timedelta
@@ -10,26 +10,22 @@ class Config:
     """Base configuration class with common settings."""
     
     # Flask Settings
-    SECRET_KEY = os.environ.get('SECRET_KEY', 'syncano-secret-key-change-in-production')
+    SECRET_KEY = os.environ.get('SECRET_KEY', 'melodexa-secret-key-change-in-production')
     DEBUG = False
     TESTING = False
     
     # Server Settings
     HOST = os.environ.get('HOST', '0.0.0.0')
-    PORT = int(os.environ.get('PORT', 10000))  # Render default port
+    PORT = int(os.environ.get('PORT', 3000))  # Default Flask API port (changed from 10000)
     
     # CORS Settings for Vercel frontend + Render backend
-    FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:5173')
-    BACKEND_URL = os.environ.get('BACKEND_URL', 'http://localhost:10000')
+    FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:5000')
+    BACKEND_URL = os.environ.get('BACKEND_URL', 'http://localhost:3000')
     
-    # Socket.IO Settings - Optimized for production serverless (Vercel + Render)
-    SOCKETIO_CORS_ALLOWED_ORIGINS = os.environ.get('CORS_ORIGINS', '*')
-    SOCKETIO_PING_TIMEOUT = 180  # 180 seconds (3 minutes for serverless cold starts)
-    SOCKETIO_PING_INTERVAL = 45  # 45 seconds
-    SOCKETIO_MAX_HTTP_BUFFER_SIZE = 100000000  # 100MB for large payloads
-    SOCKETIO_ALWAYS_CONNECT = True
-    # Use threading by default, eventlet if explicitly set and available
-    SOCKETIO_ASYNC_MODE = os.environ.get('SOCKETIO_ASYNC_MODE', 'threading')
+    # WebRTC Architecture - Socket.IO removed
+    # Signaling handled by separate Node.js WebSocket server
+    # Audio streaming via WebRTC P2P (no server bandwidth)
+    SOCKETIO_CORS_ALLOWED_ORIGINS = os.environ.get('CORS_ORIGINS', '*')  # Kept for compatibility
     
     # Session Settings
     PERMANENT_SESSION_LIFETIME = timedelta(hours=24)
@@ -71,6 +67,8 @@ class DevelopmentConfig(Config):
     """Development environment configuration."""
     DEBUG = True
     LOG_LEVEL = 'DEBUG'
+    PORT = 3000  # Flask API on port 3000
+    # Signaling server runs separately on port 3001
 
 
 class ProductionConfig(Config):
@@ -78,6 +76,7 @@ class ProductionConfig(Config):
     DEBUG = False
     SESSION_COOKIE_SECURE = True
     LOG_LEVEL = 'INFO'
+    PORT = int(os.environ.get('PORT', 10000))  # Render default port
     
     # Production CORS - allow Vercel frontend
     SOCKETIO_CORS_ALLOWED_ORIGINS = os.environ.get(
@@ -85,9 +84,10 @@ class ProductionConfig(Config):
         'https://*.vercel.app'
     )
     
-    # Longer timeouts for production to handle network latency and serverless cold starts
-    SOCKETIO_PING_TIMEOUT = 120  # 120 seconds
-    SOCKETIO_PING_INTERVAL = 30  # 30 seconds
+    # WebRTC P2P Architecture:
+    # - Flask API: Music service only (this server)
+    # - Signaling: Separate Node.js server for WebRTC
+    # - Audio: Direct P2P between browsers (no server bandwidth)
 
 
 class TestingConfig(Config):

@@ -38,7 +38,7 @@ export const AppState = {
     
     // Load liked songs from localStorage
     loadLikedSongs() {
-        const saved = localStorage.getItem('syncano_liked_songs');
+        const saved = localStorage.getItem('melodexa_liked_songs');
         if (saved) {
             try {
                 this.likedSongs = JSON.parse(saved);
@@ -51,12 +51,12 @@ export const AppState = {
     
     // Save liked songs to localStorage
     saveLikedSongs() {
-        localStorage.setItem('syncano_liked_songs', JSON.stringify(this.likedSongs));
+        localStorage.setItem('melodexa_liked_songs', JSON.stringify(this.likedSongs));
     },
     
     // Load playlists from localStorage
     loadPlaylists() {
-        const saved = localStorage.getItem('syncano_playlists');
+        const saved = localStorage.getItem('melodexa_playlists');
         if (saved) {
             try {
                 this.playlists = JSON.parse(saved);
@@ -132,7 +132,7 @@ export const AppState = {
     
     // Save playlists to localStorage
     savePlaylists() {
-        localStorage.setItem('syncano_playlists', JSON.stringify(this.playlists));
+        localStorage.setItem('melodexa_playlists', JSON.stringify(this.playlists));
     },
     
     // Add song to playlist

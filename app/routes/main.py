@@ -24,102 +24,27 @@ def index():
 
 @main_bp.route('/health')
 def health_check():
-    """Comprehensive health check endpoint for monitoring and debugging."""
-    from flask import current_app
+    """Lightweight health check endpoint for monitoring."""
     import time
-    import sys
-    import psutil
+    from flask import current_app
     
     health_status = {
-        'status': 'healthy',
-        'service': 'syncano-backend',
-        'timestamp': int(time.time()),
-        'environment': current_app.config.get('FLASK_ENV', 'unknown'),
-        'version': '2.0.0',
-        'components': {},
-        'metrics': {}
+        'status': 'ok',
+        'service': 'melodexa',
+        'timestamp': time.time(),
+        'uptime': time.process_time()
     }
     
-    # System metrics
-    try:
-        process = psutil.Process()
-        memory_info = process.memory_info()
-        health_status['metrics'] = {
-            'cpu_percent': psutil.cpu_percent(interval=0.1),
-            'memory_used_mb': round(memory_info.rss / 1024 / 1024, 2),
-            'memory_percent': round(process.memory_percent(), 2),
-            'uptime_seconds': int(time.time() - process.create_time()),
-            'python_version': sys.version.split()[0],
-            'threads': process.num_threads()
-        }
-    except Exception as e:
-        logger.warning(f"Failed to get system metrics: {e}")
-    
-    # Check Redis connection
+    # Check Redis connection (optional)
     try:
         room_service = current_app.room_service
         if room_service.use_redis and room_service.redis_client:
-            start = time.time()
             room_service.redis_client.ping()
-            latency = round((time.time() - start) * 1000, 2)
-            health_status['components']['redis'] = {
-                'status': 'connected',
-                'latency_ms': latency
-            }
-        else:
-            health_status['components']['redis'] = {
-                'status': 'not_configured',
-                'note': 'Using in-memory storage'
-            }
-    except Exception as e:
-        health_status['components']['redis'] = {
-            'status': 'error',
-            'error': str(e)
-        }
-        health_status['status'] = 'degraded'
+            health_status['redis'] = 'connected'
+    except Exception:
+        health_status['redis'] = 'error'
     
-    # Check Music API service
-    try:
-        music_service = current_app.music_service
-        health_status['components']['music_api'] = {
-            'status': 'available',
-            'provider': 'JioSaavn'
-        }
-    except Exception as e:
-        health_status['components']['music_api'] = {
-            'status': 'error',
-            'error': str(e)
-        }
-        health_status['status'] = 'degraded'
-    
-    # Check Socket.IO
-    try:
-        from .. import socketio
-        health_status['components']['socketio'] = {
-            'status': 'initialized',
-            'async_mode': socketio.async_mode
-        }
-    except Exception as e:
-        health_status['components']['socketio'] = {
-            'status': 'error',
-            'error': str(e)
-        }
-    
-    # Check middleware
-    try:
-        health_status['components']['rate_limiter'] = {
-            'status': 'active',
-            'backend': 'redis' if hasattr(current_app, 'rate_limiter') and current_app.rate_limiter.use_redis else 'memory'
-        }
-        health_status['components']['cache'] = {
-            'status': 'active',
-            'backend': 'redis' if hasattr(current_app, 'cache_manager') and current_app.cache_manager.use_redis else 'memory'
-        }
-    except Exception as e:
-        logger.warning(f"Middleware health check failed: {e}")
-    
-    status_code = 200 if health_status['status'] == 'healthy' else 503
-    return jsonify(health_status), status_code
+    return jsonify(health_status), 200
 
 
 @main_bp.route('/room/<room_id>')

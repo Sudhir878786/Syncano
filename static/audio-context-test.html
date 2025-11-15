@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Audio Context Debug</title>
+    <style>
+        body { 
+            font-family: monospace; 
+            background: #000; 
+            color: #0f0; 
+            padding: 20px; 
+        }
+        button { 
+            padding: 10px 20px; 
+            margin: 5px; 
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .log { 
+            background: #111; 
+            padding: 10px; 
+            margin: 10px 0; 
+            border: 1px solid #0f0;
+        }
+        audio { width: 100%; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h1>🔊 Audio Context Test</h1>
+    
+    <h2>Test 1: Normal Audio (No AudioContext)</h2>
+    <audio id="normalAudio" controls></audio>
+    <button onclick="playNormal()">Play Normal</button>
+    
+    <h2>Test 2: Audio with AudioContext</h2>
+    <audio id="contextAudio" controls></audio>
+    <button onclick="playWithContext()">Play with AudioContext</button>
+    
+    <h2>Console Log</h2>
+    <div id="log" class="log"></div>
+
+    <script>
+        let audioContext = null;
+        let sourceNode = null;
+        
+        const testUrl = 'https://aac.saavncdn.com/277/4a7d6a0fcb1cc8a96e0a48c51b3e3bc6_96.mp4';
+        
+        function log(msg) {
+            const div = document.getElementById('log');
+            div.innerHTML += msg + '<br>';
+            console.log(msg);
+        }
+        
+        function playNormal() {
+            const audio = document.getElementById('normalAudio');
+            audio.src = testUrl;
+            audio.play();
+            log('✅ Playing normal audio (should hear sound)');
+        }
+        
+        async function playWithContext() {
+            const audio = document.getElementById('contextAudio');
+            
+            try {
+                // Create AudioContext
+                if (!audioContext) {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    log('✅ AudioContext created');
+                    log('🔊 State: ' + audioContext.state);
+                }
+                
+                // Resume if needed
+                if (audioContext.state === 'suspended') {
+                    await audioContext.resume();
+                    log('▶️ AudioContext resumed');
+                    log('🔊 State: ' + audioContext.state);
+                }
+                
+                // Set audio source
+                audio.src = testUrl;
+                
+                // Create media element source (can only do ONCE per element)
+                if (!sourceNode) {
+                    sourceNode = audioContext.createMediaElementSource(audio);
+                    log('✅ Media element source created');
+                    
+                    // Connect to speakers (CRITICAL!)
+                    sourceNode.connect(audioContext.destination);
+                    log('✅ Connected to speakers (audioContext.destination)');
+                    
+                    // Also connect to a destination for streaming
+                    const streamDestination = audioContext.createMediaStreamDestination();
+                    sourceNode.connect(streamDestination);
+                    log('✅ Connected to stream destination (for WebRTC)');
+                    log('📊 Stream has ' + streamDestination.stream.getTracks().length + ' tracks');
+                }
+                
+                // Play
+                await audio.play();
+                log('▶️ Audio playing (should hear sound + stream available)');
+                log('🔊 AudioContext state: ' + audioContext.state);
+                
+            } catch (error) {
+                log('❌ Error: ' + error.message);
+                console.error(error);
+            }
+        }
+        
+        log('🚀 Audio Context Test Ready');
+        log('Test 1: Normal audio (baseline)');
+        log('Test 2: Audio with AudioContext (should also hear sound!)');
+    </script>
+</body>
+</html>

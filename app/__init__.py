@@ -1,14 +1,12 @@
 """
 Application factory and initialization.
+WebRTC-based architecture - Flask serves REST API only.
+Real-time audio distribution via WebRTC P2P (no server bandwidth).
 """
 from flask import Flask
-from flask_socketio import SocketIO
 from flask_cors import CORS
 import logging
 import os
-
-# Initialize SocketIO
-socketio = SocketIO()
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +25,6 @@ def create_app(config_name='development'):
     from .utils import setup_logger
     from .services import MusicService, RoomService
     from .routes import main_bp, api_bp
-    from .socketio_handlers import register_socketio_events
     
     # Create Flask app
     app = Flask(__name__,
@@ -103,42 +100,10 @@ def create_app(config_name='development'):
     
     logger.info("Registered blueprints: main, api")
     
-    # Initialize Socket.IO with appropriate async_mode
-    # Try eventlet first, fall back to threading if not available
-    async_mode = app.config.get('SOCKETIO_ASYNC_MODE', 'threading')
-    
-    # Check if eventlet is available and working
-    if async_mode == 'eventlet':
-        try:
-            import eventlet
-            eventlet.monkey_patch()
-            logger.info("Using eventlet async_mode for Socket.IO")
-        except Exception as e:
-            logger.warning(f"Eventlet not available ({e}), falling back to threading")
-            async_mode = 'threading'
-    
-    # Socket.IO CORS - allow all Vercel domains
-    socketio_cors = '*'  # Allow all origins for Socket.IO (more permissive)
-    
-    socketio.init_app(
-        app, 
-        cors_allowed_origins=socketio_cors,
-        async_mode=async_mode,
-        logger=True,
-        engineio_logger=True,
-        ping_timeout=180,  # 3 minutes for serverless
-        ping_interval=45,  # 45 seconds
-        max_http_buffer_size=app.config.get('SOCKETIO_MAX_HTTP_BUFFER_SIZE', 100000000),
-        allow_upgrades=True,
-        transports=['websocket', 'polling'],
-        cors_credentials=True,
-        always_connect=True  # Keep connection alive
-    )
-    
-    logger.info(f"Socket.IO initialized with CORS: {socketio_cors}, async_mode: {async_mode}")
-    
-    # Register Socket.IO events
-    register_socketio_events(socketio)
+    # WebRTC architecture - No Socket.IO needed
+    # Signaling handled by Node.js WebSocket server
+    # Audio distribution via P2P WebRTC connections
+    logger.info("Flask app initialized for HTTP API only (WebRTC P2P architecture)")
     
     # Register error handlers
     register_error_handlers(app)

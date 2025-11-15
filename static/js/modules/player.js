@@ -70,12 +70,16 @@ export const Player = {
             // Store song ID for lyrics (fetch only when user clicks lyrics button)
             AppState.currentSongId = song.id;
             
-            // If in a room and is host, emit song change
-            if (AppState.inRoom && AppState.isHost && AppState.socket) {
-                console.log('Host emitting song change:', songWithUrl);
-                AppState.socket.emit('play_song', {
-                    room_id: AppState.currentRoom,
-                    song: songWithUrl
+            // If in a room and is host, broadcast song change via signaling
+            if (AppState.inRoom && AppState.isHost) {
+                console.log('Host broadcasting song change:', songWithUrl);
+                // Import RoomManager dynamically to avoid circular dependency
+                import('./webrtc-room.js').then(({ RoomManager }) => {
+                    RoomManager.broadcastRoomState({
+                        currentSong: songWithUrl,
+                        isPlaying: true,
+                        currentTime: 0
+                    });
                 });
             }
             
@@ -83,6 +87,18 @@ export const Player = {
                 await DOM.audioPlayer.play();
                 AppState.isPlaying = true;
                 this.updatePlayPauseButton();
+                
+                // If host, ensure WebRTC audio capture is connected AFTER playing starts
+                // This ensures the audio element is active before we connect AudioContext
+                if (AppState.inRoom && AppState.isHost) {
+                    const { RoomManager } = await import('./webrtc-room.js');
+                    const connected = await RoomManager.peerManager?.ensureAudioSourceConnected?.(DOM.audioPlayer);
+                    if (connected) {
+                        console.log('🎧 Host audio now streaming via WebRTC P2P + playing locally');
+                    } else {
+                        console.warn('⚠️ Failed to connect WebRTC audio - check console for errors');
+                    }
+                }
             } catch (playError) {
                 console.error('Audio play error:', playError);
                 throw new Error('Failed to play audio. The file might be corrupted or not accessible.');
@@ -115,7 +131,7 @@ export const Player = {
         DOM.playerTitle.textContent = song.title || song.song || 'Unknown Title';
         DOM.playerArtist.textContent = song.singers || song.artist || song.primary_artists || 'Unknown Artist';
         
-        document.title = `${song.title || song.song || 'Unknown Title'} • Syncano`;
+        document.title = `${song.title || song.song || 'Unknown Title'} • Melodexa`;
         
         AppState.currentSong = song;
         this.updateLikeButtons();
@@ -140,13 +156,14 @@ export const Player = {
         
         this.updatePlayPauseButton();
         
-        // If in a room and is host, emit playback change
-        if (AppState.inRoom && AppState.isHost && AppState.socket && !AppState.isSyncing) {
-            console.log('Host emitting play_pause:', AppState.isPlaying);
-            AppState.socket.emit('play_pause', {
-                room_id: AppState.currentRoom,
-                is_playing: AppState.isPlaying,
-                current_time: DOM.audioPlayer.currentTime
+        // If in a room and is host, broadcast playback change via signaling
+        if (AppState.inRoom && AppState.isHost && !AppState.isSyncing) {
+            console.log('Host broadcasting playback change:', AppState.isPlaying);
+            import('./webrtc-room.js').then(({ RoomManager }) => {
+                RoomManager.broadcastRoomState({
+                    isPlaying: AppState.isPlaying,
+                    currentTime: DOM.audioPlayer.currentTime
+                });
             });
         }
     },
@@ -221,11 +238,12 @@ export const Player = {
         const seekTime = DOM.progressSlider.value;
         DOM.audioPlayer.currentTime = seekTime;
         
-        // If in a room and is host, emit seek change
-        if (AppState.inRoom && AppState.isHost && AppState.socket) {
-            AppState.socket.emit('seek', {
-                room_id: AppState.currentRoom,
-                current_time: seekTime
+        // If in a room and is host, broadcast seek change via signaling
+        if (AppState.inRoom && AppState.isHost) {
+            import('./webrtc-room.js').then(({ RoomManager }) => {
+                RoomManager.broadcastRoomState({
+                    currentTime: seekTime
+                });
             });
         }
     },

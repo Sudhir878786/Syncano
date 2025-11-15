@@ -3,26 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Syncano - Listen together, anywhere</title>
+    <title>Melodexa - Listen together, anywhere</title>
     
     <!-- Backend URL Configuration -->
     <script>
         {% raw %}
-        // PRODUCTION BACKEND URL - UPDATE THIS WITH YOUR ACTUAL RENDER URL
-        const PRODUCTION_BACKEND = 'https://syncano.onrender.com';
+        // PRODUCTION URLs - UPDATE THESE WITH YOUR ACTUAL DEPLOYMENT URLS
+        const PRODUCTION_BACKEND = 'https://melodexa.onrender.com';  // Flask API
+        const PRODUCTION_SIGNALING = 'wss://melodexa-signaling.onrender.com';  // WebRTC Signaling
         
-        // Try to use Flask template variable (when served from Render)
+        // Development URLs (when running locally)
+        const DEV_BACKEND = 'http://localhost:3000';
+        const DEV_SIGNALING = 'ws://localhost:3001';
+        
+        // Detect environment
+        const isLocalhost = window.location.hostname === 'localhost' || 
+                           window.location.hostname === '127.0.0.1' ||
+                           window.location.hostname === '';
+        
+        // Configure Backend URL (Flask API)
         {% endraw %}
         let flaskBackendUrl = '{{ backend_url }}';
         {% raw %}
         
-        // If Flask template wasn't rendered (Vercel static deployment), use hardcoded production URL
-        if (!flaskBackendUrl || flaskBackendUrl.includes('{{') || flaskBackendUrl.includes('localhost')) {
+        if (isLocalhost) {
+            window.BACKEND_URL = DEV_BACKEND;
+            window.SIGNALING_URL = DEV_SIGNALING;
+            console.log('🔧 Development mode - using local servers');
+        } else if (!flaskBackendUrl || flaskBackendUrl.includes('{{') || flaskBackendUrl.includes('localhost')) {
             window.BACKEND_URL = PRODUCTION_BACKEND;
-            console.log('Using hardcoded production backend:', PRODUCTION_BACKEND);
+            window.SIGNALING_URL = PRODUCTION_SIGNALING;
+            console.log('🚀 Production mode - using deployed servers');
         } else {
             window.BACKEND_URL = flaskBackendUrl;
-            console.log('Using Flask backend URL:', flaskBackendUrl);
+            window.SIGNALING_URL = PRODUCTION_SIGNALING;
+            console.log('📡 Using Flask backend URL:', flaskBackendUrl);
         }
         
         // Clean up trailing slashes
@@ -30,8 +45,9 @@
             window.BACKEND_URL = window.BACKEND_URL.slice(0, -1);
         }
         
-        console.log('Final backend URL:', window.BACKEND_URL);
-        console.log('Current hostname:', window.location.hostname);
+        console.log('🎵 Backend URL (Flask API):', window.BACKEND_URL);
+        console.log('📡 Signaling URL (WebRTC):', window.SIGNALING_URL);
+        console.log('🌐 Hostname:', window.location.hostname);
         {% endraw %}
     </script>
 
@@ -102,7 +118,7 @@
             <div class="p-6 border-b border-spotify-gray flex-shrink-0">
                 <div class="flex items-center gap-3">
                     <i class="fas fa-broadcast-tower text-spotify-green text-2xl"></i>
-                    <span class="font-bold text-xl gradient-text">Syncano</span>
+                    <span class="font-bold text-xl gradient-text">Melodexa</span>
                 </div>
             </div>
             
@@ -216,7 +232,7 @@
                     <div class="bg-gradient-to-br from-spotify-green/20 to-transparent p-6 md:p-8 rounded-2xl border border-spotify-green/30">
                         <div class="text-center space-y-3 md:space-y-4">
                             <i class="fas fa-headphones text-4xl md:text-6xl text-spotify-green"></i>
-                            <h2 class="text-xl md:text-3xl font-bold">Welcome to Syncano</h2>
+                            <h2 class="text-xl md:text-3xl font-bold">Welcome to Melodexa</h2>
                             <p class="text-base md:text-xl text-spotify-light-gray">🎧 Listen together, anywhere. Perfectly in sync.</p>
                             <p class="text-sm md:text-base text-spotify-light-gray">Real-time. Real beats. Real connection.</p>
                             <div class="flex items-center justify-center gap-2 mt-4">
@@ -290,7 +306,7 @@
         <div class="flex md:grid md:grid-cols-3 gap-2 md:gap-4 items-center">
             <!-- Song Info -->
             <div class="flex items-center gap-2 md:gap-4 min-w-0 flex-1 md:flex-initial">
-                <img id="playerImage" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='56' viewBox='0 0 56 56'%3E%3Crect width='56' height='56' fill='%231DB954'/%3E%3Cpath d='M28 14c-7.732 0-14 6.268-14 14s6.268 14 14 14 14-6.268 14-14-6.268-14-14-14zm5.6 20.3l-.8.6c-.2.2-.5.2-.7 0l-4.1-3.1-4.1 3.1c-.2.2-.5.2-.7 0l-.8-.6c-.2-.2-.2-.5 0-.7l4.5-3.4-4.5-3.4c-.2-.2-.2-.5 0-.7l.8-.6c.2-.2.5-.2.7 0l4.1 3.1 4.1-3.1c.2-.2.5-.2.7 0l.8.6c.2.2.2.5 0 .7L28.7 30l4.5 3.4c.2.2.2.5 0 .7z' fill='white'/%3E%3C/svg%3E" alt="Syncano" class="album-art-glow w-10 h-10 md:w-14 md:h-14 rounded">
+                <img id="playerImage" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='56' viewBox='0 0 56 56'%3E%3Crect width='56' height='56' fill='%231DB954'/%3E%3Cpath d='M28 14c-7.732 0-14 6.268-14 14s6.268 14 14 14 14-6.268 14-14-6.268-14-14-14zm5.6 20.3l-.8.6c-.2.2-.5.2-.7 0l-4.1-3.1-4.1 3.1c-.2.2-.5.2-.7 0l-.8-.6c-.2-.2-.2-.5 0-.7l4.5-3.4-4.5-3.4c-.2-.2-.2-.5 0-.7l.8-.6c.2-.2.5-.2.7 0l4.1 3.1 4.1-3.1c.2-.2.5-.2.7 0l.8.6c.2.2.2.5 0 .7L28.7 30l4.5 3.4c.2.2.2.5 0 .7z' fill='white'/%3E%3C/svg%3E" alt="Melodexa" class="album-art-glow w-10 h-10 md:w-14 md:h-14 rounded">
                 <div class="min-w-0 flex-1">
                     <div id="playerTitle" class="font-semibold truncate text-sm md:text-base">No song selected</div>
                     <div id="playerArtist" class="text-xs md:text-sm text-spotify-light-gray truncate">Select a song to play</div>
@@ -352,7 +368,7 @@
                 </div>
             </div>
         </div>
-        <audio id="audioPlayer" preload="metadata"></audio>
+        <audio id="audioPlayer" preload="metadata" crossorigin="anonymous"></audio>
     </footer>
 
     <!-- Lyrics Terminal (Hidden by default, draggable) -->
@@ -369,7 +385,7 @@
         </div>
         <div class="p-4 overflow-y-auto max-h-80 font-mono text-sm">
             <div class="text-spotify-green mb-2">
-                <span class="text-green-400">user@syncano</span>:<span class="text-blue-400">~</span>$ <span class="text-yellow-300">cat current_song.lyrics</span>
+                <span class="text-green-400">user@melodexa</span>:<span class="text-blue-400">~</span>$ <span class="text-yellow-300">cat current_song.lyrics</span>
             </div>
             <div id="lyricsContent" class="text-gray-300 space-y-2">
                 <div class="text-spotify-light-gray"># No lyrics available</div>
@@ -412,7 +428,6 @@
         </div>
     </div>
 
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script type="module" src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>
 </html>

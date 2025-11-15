@@ -1,6 +1,6 @@
-# 🎧 Syncano - Listen together, anywhere
+# 🎧 Melodexa - Listen together, anywhere
 
-A production-ready collaborative music streaming application with real-time synchronized playback. Built with a modern split architecture: **Vercel (frontend) + Render (backend) + Upstash Redis (database)**.
+A production-ready collaborative music streaming application with real-time synchronized playback powered by **WebRTC P2P technology**. Built with a modern architecture: **Flask API + Node.js Signaling + Upstash Redis**.
 
 ## ✨ Features
 
@@ -128,7 +128,7 @@ This will test:
 ## 📁 Project Structure
 
 ```
-Syncano/
+Melodexa/
 ├── run.py                      # Application entry point (development)
 ├── wsgi.py                     # WSGI entry point (production)
 ├── config.py                   # Configuration (CORS, Redis, etc.)
@@ -294,7 +294,8 @@ This project is for educational purposes only.
 
 **Made with ❤️ for music lovers everywhere**
 
-🎧 **Syncano** - *One track, one tempo — infinite listeners.*
+🎧 **Melodexa** - *One track, one tempo — infinite listeners.*
+
 ## 📜 License
 
 This project is for educational purposes only. JioSaavn and its API are property of their respective owners.
@@ -303,4 +304,4 @@ This project is for educational purposes only. JioSaavn and its API are property
 
 **Made with ❤️ for music lovers everywhere**
 
-🎧 **Syncano** - *One track, one tempo — infinite listeners.*
+🎧 **Melodexa** - *One track, one tempo — infinite listeners.*

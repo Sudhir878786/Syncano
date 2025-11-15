@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
 Production Monitoring Dashboard
-Real-time monitoring of Syncano backend health and performance.
+"""
+Real-time monitoring of Melodexa backend health and performance.
 
 Usage:
     python monitor.py https://your-backend.onrender.com
@@ -60,7 +61,7 @@ def get_status_color(status: str) -> str:
 def print_header():
     """Print dashboard header."""
     print(f"\n{Colors.BOLD}{Colors.CYAN}{'='*70}{Colors.END}")
-    print(f"{Colors.BOLD}{Colors.CYAN}  Syncano Production Monitoring Dashboard{Colors.END}")
+    print(f"{Colors.BOLD}{Colors.CYAN}  Melodexa Production Monitoring Dashboard{Colors.END}")
     print(f"{Colors.BOLD}{Colors.CYAN}{'='*70}{Colors.END}\n")
 
 

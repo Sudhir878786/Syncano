@@ -1,5 +1,5 @@
 /**
- * Syncano - Main Application Entry Point
+ * Melodexa - Main Application Entry Point
  * A modern music streaming application with collaborative rooms
  */
 
@@ -7,7 +7,7 @@ import { AppState } from './modules/state.js';
 import { DOM } from './modules/dom.js';
 import { Player } from './modules/player.js';
 import { Search } from './modules/search.js';
-import { RoomManager } from './modules/room.js';
+import { RoomManager } from './modules/webrtc-room.js'; // WebRTC P2P room manager
 import { LyricsManager } from './modules/lyrics.js';
 import { PlaylistManager } from './modules/playlist.js';
 import { ColorExtractor } from './modules/color-extractor.js';
@@ -53,8 +53,8 @@ function startKeepalive() {
 /**
  * Initialize the application
  */
-function initializeApp() {
-    console.log('🎵 Syncano - Initializing...');
+async function initializeApp() {
+    console.log('🎵 Melodexa - Initializing...');
     
     // Initialize DOM references
     DOM.init();
@@ -67,9 +67,9 @@ function initializeApp() {
     AppState.init();
     console.log('💾 State initialized');
     
-    // Initialize Socket.IO for rooms
-    RoomManager.initializeSocket();
-    console.log('🔌 Socket.IO initialized');
+    // Initialize WebRTC signaling connection
+    await RoomManager.initializeSocket();
+    console.log('🔌 WebRTC signaling initialized');
     
     // Initialize keepalive for Render (prevents cold starts)
     startKeepalive();
@@ -92,8 +92,8 @@ function initializeApp() {
         Player.updateVolumeSliderBackground();
     }
     
-    console.log('✅ Syncano - Ready!');
-    console.log('📊 Available functions:', Object.keys(window.Syncano));
+    console.log('✅ Melodexa - Ready!');
+    console.log('📊 Available functions:', Object.keys(window.Melodexa));
 }
 
 /**
@@ -324,7 +324,7 @@ function setupEventListeners() {
 document.addEventListener('DOMContentLoaded', initializeApp);
 
 // Export for debugging purposes
-window.Syncano = {
+window.Melodexa = {
     AppState,
     Player,
     Search,
