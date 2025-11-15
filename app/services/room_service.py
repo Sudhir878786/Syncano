@@ -68,8 +68,8 @@ class RoomService:
                     **connection_kwargs
                 )
                 
-                # Test connection with retry
-                max_retries = 3
+                # Test connection with aggressive retry (exponential backoff)
+                max_retries = 10
                 for attempt in range(max_retries):
                     try:
                         ping_result = self.redis_client.ping()
@@ -80,9 +80,10 @@ class RoomService:
                         if attempt == max_retries - 1:
                             logger.error(f"Redis connection failed after {max_retries} attempts: {retry_error}")
                             raise retry_error
-                        logger.warning(f"Redis connection attempt {attempt + 1} failed: {retry_error}, retrying...")
+                        wait_time = min(2 ** attempt, 30)  # Exponential backoff up to 30s
+                        logger.warning(f"Redis connection attempt {attempt + 1} failed: {retry_error}, retrying in {wait_time}s...")
                         import time
-                        time.sleep(1)
+                        time.sleep(wait_time)
                         
             except Exception as e:
                 logger.error(f"Failed to connect to Upstash Redis: {e}. Using in-memory storage.")
@@ -99,23 +100,30 @@ class RoomService:
         return f"room:{room_id}"
     
     def _save_room(self, room_id: str, room_data: Dict[str, Any]):
-        """Save room data to Redis or memory."""
+        """Save room data to Redis or memory with retry."""
         if self.use_redis:
-            try:
-                room_json = json.dumps(room_data, default=str)
-                # Use 7 days expiry for longer data retention
-                result = self.redis_client.setex(
-                    self._get_room_key(room_id),
-                    604800,  # 7 days expiry (604800 seconds)
-                    room_json
-                )
-                logger.info(f"Saved room {room_id} to Redis successfully (key: {self._get_room_key(room_id)}, result: {result})")
-            except Exception as e:
-                logger.error(f"Failed to save room {room_id} to Redis: {e}")
-                # Fallback to memory if Redis fails
-                if not hasattr(self, 'active_rooms'):
-                    self.active_rooms = {}
-                self.active_rooms[room_id] = room_data
+            room_json = json.dumps(room_data, default=str)
+            # Retry save operation up to 3 times
+            for attempt in range(3):
+                try:
+                    result = self.redis_client.setex(
+                        self._get_room_key(room_id),
+                        604800,  # 7 days expiry
+                        room_json
+                    )
+                    logger.info(f"Saved room {room_id} to Redis (attempt {attempt + 1}, result: {result})")
+                    return  # Success
+                except Exception as e:
+                    if attempt == 2:  # Last attempt
+                        logger.error(f"Failed to save room {room_id} to Redis after 3 attempts: {e}")
+                        # Fallback to memory
+                        if not hasattr(self, 'active_rooms'):
+                            self.active_rooms = {}
+                        self.active_rooms[room_id] = room_data
+                    else:
+                        logger.warning(f"Save attempt {attempt + 1} failed for room {room_id}: {e}, retrying...")
+                        import time
+                        time.sleep(0.5 * (attempt + 1))  # 0.5s, 1s
         else:
             if not hasattr(self, 'active_rooms'):
                 self.active_rooms = {}

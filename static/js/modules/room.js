@@ -19,21 +19,21 @@ export const RoomManager = {
         
         console.log('🔌 Connecting to Socket.IO backend:', backendUrl);
         
-        // Configure Socket.IO for Render Web Service with persistent connections
+        // Configure Socket.IO for production serverless (Vercel + Render)
         AppState.socket = io(backendUrl, {
-            transports: ['websocket', 'polling'],  // Try websocket first
+            transports: ['websocket', 'polling'],
             upgrade: true,
             reconnection: true,
-            reconnectionDelay: 1000,
-            reconnectionDelayMax: 5000,
-            reconnectionAttempts: 10,  // Limit reconnection attempts
-            timeout: 20000,
+            reconnectionDelay: 2000,
+            reconnectionDelayMax: 10000,
+            reconnectionAttempts: Infinity,  // Never stop trying
+            timeout: 30000,
             forceNew: false,
-            withCredentials: true,  // Important for CORS
+            withCredentials: true,
             autoConnect: true,
-            // Heartbeat settings to match backend
-            pingTimeout: 60000,  // 60 seconds to match backend
-            pingInterval: 25000   // 25 seconds to match backend
+            // Heartbeat settings - aggressive for serverless
+            pingTimeout: 180000,  // 3 minutes for cold starts
+            pingInterval: 45000   // 45 seconds
         });
         
         this.setupSocketHandlers();
@@ -46,81 +46,61 @@ export const RoomManager = {
         const socket = AppState.socket;
         
         socket.on('connect', () => {
-            console.log('✅ Socket.IO connected:', socket.id);
-            console.log('Transport:', socket.io.engine.transport.name);
-            
-            // Mark as connected - no notifications
+            console.log('Socket.IO connected:', socket.id);
             AppState.socketConnected = true;
             AppState.connectionErrorShown = false;
             
-            // If we were in a room before disconnect, rejoin
+            // Auto-rejoin room after reconnect
             if (AppState.currentRoom && AppState.username) {
-                console.log('🔄 Auto-rejoining room after connect:', AppState.currentRoom);
-                // Add a small delay to ensure server is ready
                 setTimeout(() => {
                     socket.emit('join_room', { 
                         room_id: AppState.currentRoom, 
                         username: AppState.username 
                     });
-                }, 100);
+                }, 500); // Increased delay for server stability
             }
         });
         
         socket.on('connect_error', (error) => {
-            console.error('❌ Socket.IO connection error:', error.message);
-            // Only show error after multiple failures
+            console.error('Connection error:', error.message);
+            // Show error ONLY after 30 seconds of continuous failure
             if (!AppState.connectionErrorShown) {
                 AppState.connectionErrorShown = true;
-                // Show error only after 3 failed attempts (15 seconds)
                 setTimeout(() => {
                     if (!AppState.socketConnected) {
-                        showSyncIndicator('Connection issue. Please check your internet.', 'error');
+                        showSyncIndicator('Connection issue detected', 'error');
                     }
-                }, 15000);
+                }, 30000);
             }
         });
         
         socket.on('disconnect', (reason) => {
-            console.log('🔌 Socket.IO disconnected:', reason);
+            console.log('Disconnected:', reason);
             AppState.socketConnected = false;
-            
-            // Silent handling - Socket.IO will auto-reconnect
-            // Only reconnect manually if server explicitly disconnected us
-            if (reason === 'io server disconnect') {
-                console.log('Server disconnected - will reconnect');
-                socket.connect();
-            }
-            // Never show notifications for normal disconnects/reconnects
+            // COMPLETELY SILENT - no notifications at all
+            // Socket.IO auto-reconnects, room persists for 5 minutes
         });
         
         socket.on('reconnect', (attemptNumber) => {
-            console.log('🔄 Socket.IO reconnected after', attemptNumber, 'attempts');
+            console.log('Reconnected after', attemptNumber, 'attempts');
             AppState.socketConnected = true;
             AppState.connectionErrorShown = false;
             
-            // If we were in a room, rejoin it
+            // Rejoin room silently
             if (AppState.currentRoom && AppState.username) {
-                console.log('🔄 Rejoining room after reconnect:', AppState.currentRoom);
                 setTimeout(() => {
                     socket.emit('join_room', { 
                         room_id: AppState.currentRoom, 
                         username: AppState.username 
                     });
-                }, 100);
+                }, 500);
             }
         });
         
-        socket.on('reconnect_attempt', (attemptNumber) => {
-            console.log(`🔄 Reconnection attempt ${attemptNumber}`);
-        });
-        
-        socket.on('reconnect_error', (error) => {
-            console.error('❌ Reconnection error:', error.message);
-        });
-        
+        // No logging for reconnect_attempt and reconnect_error
         socket.on('reconnect_failed', () => {
-            console.error('❌ All reconnection attempts failed');
-            showSyncIndicator('Connection lost. Please refresh the page.', 'error');
+            console.error('All reconnection attempts failed');
+            showSyncIndicator('Connection lost. Please refresh.', 'error');
             AppState.socketConnected = false;
         });
         
@@ -160,12 +140,12 @@ export const RoomManager = {
         
         socket.on('user_joined', (data) => {
             this.updateUsersList(data.users);
-            showSyncIndicator(data.username + ' joined the blend', 'success');
+            // Silent - no notification spam
         });
         
         socket.on('user_left', (data) => {
             this.updateUsersList(data.users);
-            showSyncIndicator(data.username + ' left the blend', 'info');
+            // Silent - no notification spam
         });
         
         socket.on('song_changed', (data) => {

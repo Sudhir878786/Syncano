@@ -7,20 +7,17 @@
     
     <!-- Backend URL Configuration -->
     <script>
-        // --- Raw block: do NOT let Jinja parse JS code ---
         {% raw %}
-        const PRODUCTION_BACKEND = 'https://syncano.onrender.com/'; 
+        // Set backend URL from Flask template variable
         {% endraw %}
-
-        // --- This part MUST NOT be inside raw (because it uses Jinja) ---
-        window.BACKEND_URL = '{{ backend_url | default("") }}';
-
+        window.BACKEND_URL = '{{ backend_url }}';
         {% raw %}
-        // --- Back to raw again for JS logic ---
-        if (!window.BACKEND_URL || window.BACKEND_URL.includes('{{') || window.BACKEND_URL === '') {
-            window.BACKEND_URL = PRODUCTION_BACKEND;
+        
+        // Clean up trailing slashes
+        if (window.BACKEND_URL && window.BACKEND_URL.endsWith('/')) {
+            window.BACKEND_URL = window.BACKEND_URL.slice(0, -1);
         }
-
+        
         console.log('Backend URL configured:', window.BACKEND_URL);
         console.log('Current hostname:', window.location.hostname);
         {% endraw %}

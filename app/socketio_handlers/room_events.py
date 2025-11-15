@@ -305,7 +305,7 @@ def register_socketio_events(socketio):
     
     @socketio.on('disconnect')
     def handle_disconnect():
-        """Handle user disconnection - keep them in room for rejoin unless host."""
+        """Handle user disconnection - NEVER delete rooms, allow 5-minute rejoin grace period."""
         try:
             user_rooms = rooms(request.sid)
             room_service = get_room_service()
@@ -314,32 +314,13 @@ def register_socketio_events(socketio):
                 if room_id == request.sid:  # Skip user's own room
                     continue
                 
-                # Don't force remove - allow rejoin (unless host)
-                leave_result = room_service.leave_room(room_id, request.sid, force_remove=False)
+                # NEVER force remove - always allow rejoin for 5 minutes
+                # Room stays in Redis for 7 days, user can rejoin anytime
+                logger.info(f"User disconnected from room {room_id} - room persists for rejoin (5 min grace)")
                 
-                if not leave_result:
-                    continue
-                
-                if leave_result.get('room_deleted'):
-                    # Room deleted because host left
-                    emit('room_closed', {
-                        'room_id': room_id,
-                        'message': 'Room closed - host disconnected'
-                    }, room=room_id)
-                    logger.info(f"Room {room_id} closed - host disconnected")
-                    continue
-                
-                # If temporarily disconnected, don't notify others yet
-                if not leave_result.get('temporarily_disconnected'):
-                    # Notify remaining users only if permanently left
-                    emit('user_left', {
-                        'username': leave_result['username'],
-                        'users': leave_result['users']
-                    }, room=room_id)
-                    
-                    logger.info(f"User {leave_result['username']} left room {room_id}")
-                else:
-                    logger.info(f"User {leave_result['username']} disconnected from room {room_id} but can rejoin")
+                # DO NOT emit any events - silent disconnect
+                # DO NOT call leave_room - user stays in room for rejoin
+                # Redis TTL is 7 days, plenty of time to reconnect
                 
         except Exception as e:
             logger.error(f"Error handling disconnect: {e}")

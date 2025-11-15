@@ -12,8 +12,14 @@ main_bp = Blueprint('main', __name__)
 @main_bp.route('/')
 def index():
     """Render main application page."""
+    from flask import current_app
     logger.debug("Serving main page")
-    return render_template('index.html')
+    
+    # Get backend URL from config or environment
+    backend_url = current_app.config.get('BACKEND_URL', request.url_root.rstrip('/'))
+    logger.info(f"Rendering index with backend_url: {backend_url}")
+    
+    return render_template('index.html', backend_url=backend_url)
 
 
 @main_bp.route('/health')
