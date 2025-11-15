@@ -39,12 +39,46 @@ def create_app(config_name='development'):
     app.config.from_object(config_class)
     
     # Enable CORS for frontend (Vercel) to backend (Render) communication
-    CORS(app, resources={
-        r"/*": {
-            "origins": app.config.get('SOCKETIO_CORS_ALLOWED_ORIGINS', '*'),
-            "supports_credentials": True
-        }
-    })
+    # Support Vercel preview deployments with dynamic origin checking
+    cors_origins = app.config.get('SOCKETIO_CORS_ALLOWED_ORIGINS', '*')
+    
+    # If wildcard or contains *.vercel.app, enable dynamic origin validation
+    if cors_origins == '*' or '*.vercel.app' in str(cors_origins):
+        def is_allowed_origin(origin_url):
+            """Check if origin is allowed (Vercel domains or configured origins)."""
+            if not origin_url:
+                return False
+            # Allow all .vercel.app domains
+            if '.vercel.app' in origin_url:
+                return True
+            # Allow localhost for development
+            if 'localhost' in origin_url or '127.0.0.1' in origin_url:
+                return True
+            # Check configured origins
+            if cors_origins != '*':
+                allowed = [o.strip().rstrip('/') for o in str(cors_origins).split(',')]
+                origin_clean = origin_url.strip().rstrip('/')
+                return origin_clean in allowed
+            return cors_origins == '*'
+        
+        CORS(app, resources={
+            r"/*": {
+                "origins": is_allowed_origin,
+                "supports_credentials": True,
+                "allow_headers": ["Content-Type", "Authorization"],
+                "expose_headers": ["Content-Type"],
+                "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+            }
+        })
+        logger.info("CORS enabled with dynamic origin checking for Vercel deployments")
+    else:
+        CORS(app, resources={
+            r"/*": {
+                "origins": cors_origins,
+                "supports_credentials": True
+            }
+        })
+        logger.info(f"CORS enabled for origins: {cors_origins}")
     
     # Setup logging
     setup_logger(app)
@@ -91,20 +125,25 @@ def create_app(config_name='development'):
             logger.warning(f"Eventlet not available ({e}), falling back to threading")
             async_mode = 'threading'
     
+    # Socket.IO CORS - allow all Vercel domains
+    socketio_cors = '*'  # Allow all origins for Socket.IO (more permissive)
+    
     socketio.init_app(
         app, 
-        cors_allowed_origins=app.config['SOCKETIO_CORS_ALLOWED_ORIGINS'],
+        cors_allowed_origins=socketio_cors,
         async_mode=async_mode,
         logger=True,
         engineio_logger=True,
-        ping_timeout=120,  # 120 seconds - longer for Render/Vercel
-        ping_interval=30,  # 30 seconds
+        ping_timeout=180,  # 3 minutes for serverless
+        ping_interval=45,  # 45 seconds
         max_http_buffer_size=app.config.get('SOCKETIO_MAX_HTTP_BUFFER_SIZE', 100000000),
         allow_upgrades=True,
         transports=['websocket', 'polling'],
         cors_credentials=True,
         always_connect=True  # Keep connection alive
     )
+    
+    logger.info(f"Socket.IO initialized with CORS: {socketio_cors}, async_mode: {async_mode}")
     
     # Register Socket.IO events
     register_socketio_events(socketio)
