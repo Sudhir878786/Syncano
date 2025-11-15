@@ -39,46 +39,38 @@ def create_app(config_name='development'):
     app.config.from_object(config_class)
     
     # Enable CORS for frontend (Vercel) to backend (Render) communication
-    # Support Vercel preview deployments with dynamic origin checking
+    # Support Vercel preview deployments - use regex pattern for wildcard domains
     cors_origins = app.config.get('SOCKETIO_CORS_ALLOWED_ORIGINS', '*')
     
-    # If wildcard or contains *.vercel.app, enable dynamic origin validation
+    # Use regex pattern to match all Vercel domains
     if cors_origins == '*' or '*.vercel.app' in str(cors_origins):
-        def is_allowed_origin(origin_url):
-            """Check if origin is allowed (Vercel domains or configured origins)."""
-            if not origin_url:
-                return False
-            # Allow all .vercel.app domains
-            if '.vercel.app' in origin_url:
-                return True
-            # Allow localhost for development
-            if 'localhost' in origin_url or '127.0.0.1' in origin_url:
-                return True
-            # Check configured origins
-            if cors_origins != '*':
-                allowed = [o.strip().rstrip('/') for o in str(cors_origins).split(',')]
-                origin_clean = origin_url.strip().rstrip('/')
-                return origin_clean in allowed
-            return cors_origins == '*'
+        # Regex pattern to match all .vercel.app domains and localhost
+        cors_pattern = r"^https?://([\w\-]+\.)?vercel\.app$|^https?://localhost(:\d+)?$|^https?://127\.0\.0\.1(:\d+)?$"
         
         CORS(app, resources={
             r"/*": {
-                "origins": is_allowed_origin,
+                "origins": cors_pattern,
                 "supports_credentials": True,
                 "allow_headers": ["Content-Type", "Authorization"],
                 "expose_headers": ["Content-Type"],
                 "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
             }
         })
-        logger.info("CORS enabled with dynamic origin checking for Vercel deployments")
+        logger.info("CORS enabled with regex pattern for all Vercel deployments")
     else:
+        # Parse comma-separated list of specific origins
+        origins_list = [o.strip().rstrip('/') for o in str(cors_origins).split(',') if o.strip()]
+        
         CORS(app, resources={
             r"/*": {
-                "origins": cors_origins,
-                "supports_credentials": True
+                "origins": origins_list,
+                "supports_credentials": True,
+                "allow_headers": ["Content-Type", "Authorization"],
+                "expose_headers": ["Content-Type"],
+                "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
             }
         })
-        logger.info(f"CORS enabled for origins: {cors_origins}")
+        logger.info(f"CORS enabled for specific origins: {origins_list}")
     
     # Setup logging
     setup_logger(app)
