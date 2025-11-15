@@ -8,17 +8,29 @@
     <!-- Backend URL Configuration -->
     <script>
         {% raw %}
-        // Set backend URL from Flask template variable
+        // PRODUCTION BACKEND URL - UPDATE THIS WITH YOUR ACTUAL RENDER URL
+        const PRODUCTION_BACKEND = 'https://syncano.onrender.com';
+        
+        // Try to use Flask template variable (when served from Render)
         {% endraw %}
-        window.BACKEND_URL = '{{ backend_url }}';
+        let flaskBackendUrl = '{{ backend_url }}';
         {% raw %}
+        
+        // If Flask template wasn't rendered (Vercel static deployment), use hardcoded production URL
+        if (!flaskBackendUrl || flaskBackendUrl.includes('{{') || flaskBackendUrl.includes('localhost')) {
+            window.BACKEND_URL = PRODUCTION_BACKEND;
+            console.log('Using hardcoded production backend:', PRODUCTION_BACKEND);
+        } else {
+            window.BACKEND_URL = flaskBackendUrl;
+            console.log('Using Flask backend URL:', flaskBackendUrl);
+        }
         
         // Clean up trailing slashes
         if (window.BACKEND_URL && window.BACKEND_URL.endsWith('/')) {
             window.BACKEND_URL = window.BACKEND_URL.slice(0, -1);
         }
         
-        console.log('Backend URL configured:', window.BACKEND_URL);
+        console.log('Final backend URL:', window.BACKEND_URL);
         console.log('Current hostname:', window.location.hostname);
         {% endraw %}
     </script>
