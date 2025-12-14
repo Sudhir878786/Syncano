@@ -1,5 +1,5 @@
 """
-Main entry point for Syncano Music Streaming Application.
+Main entry point for Melodexa Music Streaming Application.
 Run this file to start the server.
 """
 import os
@@ -29,7 +29,7 @@ def main():
     
     # Print startup banner
     print("=" * 60)
-    print("🎧 Syncano - Listen together, anywhere")
+    print("🎧 Melodexa - Listen together, anywhere")
     print("=" * 60)
     print(f"Environment: {env}")
     print(f"Server URL: http://{host}:{port}")
@@ -39,7 +39,7 @@ def main():
     print("Press Ctrl+C to stop the server")
     print("=" * 60)
     
-    logger.info(f"Starting Syncano server on {host}:{port}")
+    logger.info(f"Starting Melodexa server on {host}:{port}")
     
     try:
         # Run app with Socket.IO

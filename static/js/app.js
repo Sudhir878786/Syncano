@@ -1,5 +1,5 @@
 /**
- * Syncano - Main Application Entry Point
+ * Melodexa - Main Application Entry Point
  * A modern music streaming application with collaborative rooms
  */
 
@@ -18,42 +18,46 @@ import { API } from './modules/api.js';
  * Initialize the application
  */
 function initializeApp() {
-    console.log('🎵 Syncano - Initializing...');
-    
+    console.log('🎵 Melodexa - Initializing...');
+
     // Initialize DOM references
     DOM.init();
     console.log('📋 DOM initialized');
     console.log('Search input:', DOM.searchInput);
     console.log('Create room button:', DOM.createRoomBtn);
     console.log('Join room button:', DOM.joinRoomBtn);
-    
+
     // Initialize application state
     AppState.init();
     console.log('💾 State initialized');
-    
+
     // Initialize Socket.IO for rooms
     RoomManager.initializeSocket();
     console.log('🔌 Socket.IO initialized');
-    
+
     // Initialize playlists
     PlaylistManager.renderPlaylistsSidebar();
     console.log('🎵 Playlists initialized');
-    
+
+    // Initialize player default display with logo
+    Player.initializeDefaultDisplay();
+    console.log('🎨 Player default display initialized');
+
     // Update greeting
     updateGreeting();
-    
+
     // Setup event listeners
     setupEventListeners();
     console.log('🎯 Event listeners attached');
-    
+
     // Initialize volume
     if (DOM.audioPlayer && DOM.volumeSlider) {
         DOM.audioPlayer.volume = DOM.volumeSlider.value / 100;
         Player.updateVolumeSliderBackground();
     }
-    
-    console.log('✅ Syncano - Ready!');
-    console.log('📊 Available functions:', Object.keys(window.Syncano));
+
+    console.log('✅ Melodexa - Ready!');
+    console.log('📊 Available functions:', Object.keys(window.Melodexa));
 }
 
 /**
@@ -63,7 +67,7 @@ function setupEventListeners() {
     // Search functionality
     if (DOM.searchInput) {
         console.log('✅ Attaching search input listeners');
-        
+
         // Enter key performs full search
         DOM.searchInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
@@ -71,19 +75,19 @@ function setupEventListeners() {
                 Search.performSearch();
             }
         });
-        
+
         // Live suggestions as user types (instant for cached, debounced for API)
         let suggestionTimeout;
         DOM.searchInput.addEventListener('input', () => {
             const query = DOM.searchInput.value.trim();
             Search._lastQuery = query;
-            
+
             if (query.length < 1) {
                 Search.hideSuggestions();
                 clearTimeout(suggestionTimeout);
                 return;
             }
-            
+
             // Check cache immediately for instant response
             const cacheKey = query.toLowerCase().trim();
             const cached = Search._cache.get(cacheKey);
@@ -92,14 +96,14 @@ function setupEventListeners() {
                 clearTimeout(suggestionTimeout);
                 return;
             }
-            
+
             // Debounce API calls for new queries
             clearTimeout(suggestionTimeout);
             suggestionTimeout = setTimeout(() => {
                 Search.showLiveSuggestions(query);
             }, 100); // Reduced to 100ms
         });
-        
+
         // Focus shows suggestions if there's a query
         DOM.searchInput.addEventListener('focus', () => {
             const query = DOM.searchInput.value.trim();
@@ -107,7 +111,7 @@ function setupEventListeners() {
                 Search.showLiveSuggestions(query);
             }
         });
-        
+
         // Click outside to hide suggestions
         document.addEventListener('click', (e) => {
             if (!DOM.searchInput.contains(e.target) && !DOM.searchSuggestions?.contains(e.target)) {
@@ -115,7 +119,7 @@ function setupEventListeners() {
             }
         });
     }
-    
+
     // Test API button
     const testApiBtn = document.getElementById('testApiBtn');
     if (testApiBtn) {
@@ -130,7 +134,7 @@ function setupEventListeners() {
             }
         });
     }
-    
+
     // Room functionality
     if (DOM.createRoomBtn) {
         console.log('✅ Attaching create room listener');
@@ -141,7 +145,7 @@ function setupEventListeners() {
     } else {
         console.warn('⚠️ Create room button not found!');
     }
-    
+
     if (DOM.joinRoomBtn) {
         console.log('✅ Attaching join room listener');
         DOM.joinRoomBtn.addEventListener('click', () => {
@@ -151,10 +155,10 @@ function setupEventListeners() {
     } else {
         console.warn('⚠️ Join room button not found!');
     }
-    
+
     DOM.closeModal?.addEventListener('click', () => RoomManager.hideModal());
     DOM.modalActionBtn?.addEventListener('click', () => RoomManager.handleModalAction());
-    
+
     // Close modal on overlay click
     if (DOM.roomModal) {
         DOM.roomModal.addEventListener('click', (e) => {
@@ -163,43 +167,43 @@ function setupEventListeners() {
             }
         });
     }
-    
+
     // Room action buttons
     const syncWithRoomBtn = document.getElementById('syncWithRoomBtn');
     const leaveRoomBtn = document.getElementById('leaveRoomBtn');
     syncWithRoomBtn?.addEventListener('click', () => RoomManager.requestRoomSync());
     leaveRoomBtn?.addEventListener('click', () => RoomManager.leaveRoom());
-    
+
     // Player controls
     DOM.playPauseBtn?.addEventListener('click', () => Player.togglePlayPause());
     DOM.prevBtn?.addEventListener('click', () => Player.playPrevious());
     DOM.nextBtn?.addEventListener('click', () => Player.playNext());
-    
+
     // Audio player events
     if (DOM.audioPlayer) {
         DOM.audioPlayer.addEventListener('loadedmetadata', () => Player.updateDuration());
         DOM.audioPlayer.addEventListener('timeupdate', () => Player.updateProgress());
         DOM.audioPlayer.addEventListener('ended', () => Player.playNext());
-        
+
         DOM.audioPlayer.addEventListener('error', (e) => {
             console.error('Audio error:', e);
             alert('Failed to load audio. The song might not be available.');
             AppState.isPlaying = false;
             Player.updatePlayPauseButton();
         });
-        
+
         DOM.audioPlayer.addEventListener('loadstart', () => {
             AppState.isPlaying = false;
             Player.updatePlayPauseButton();
         });
-        
+
         DOM.audioPlayer.addEventListener('play', () => {
             if (!AppState.isSyncing) {
                 AppState.isPlaying = true;
                 Player.updatePlayPauseButton();
             }
         });
-        
+
         DOM.audioPlayer.addEventListener('pause', () => {
             if (!AppState.isSyncing) {
                 AppState.isPlaying = false;
@@ -207,17 +211,17 @@ function setupEventListeners() {
             }
         });
     }
-    
+
     // Progress slider
     DOM.progressSlider?.addEventListener('input', () => Player.seekToPosition());
-    
+
     // Volume controls
     DOM.volumeSlider?.addEventListener('input', () => Player.updateVolume());
     DOM.volumeBtn?.addEventListener('click', () => Player.toggleMute());
-    
+
     // Like current song
     DOM.likeCurrentSongBtn?.addEventListener('click', () => Player.toggleLikeCurrentSong());
-    
+
     // Lyrics button - fetch and show lyrics when clicked
     DOM.lyricsBtn?.addEventListener('click', () => {
         const isVisible = !DOM.lyricsTerminal?.classList.contains('hidden');
@@ -229,17 +233,17 @@ function setupEventListeners() {
         }
     });
     DOM.closeLyricsBtn?.addEventListener('click', () => LyricsManager.hideLyricsTerminal());
-    
+
     // Navigation items
     const navItems = document.querySelectorAll('.nav-item');
     navItems.forEach(item => {
-        item.addEventListener('click', function(e) {
+        item.addEventListener('click', function (e) {
             e.preventDefault();
             navItems.forEach(i => {
                 i.classList.remove('active', 'bg-spotify-gray');
             });
             this.classList.add('active', 'bg-spotify-gray');
-            
+
             const section = this.dataset.section;
             if (section === 'search') {
                 DOM.searchInput?.focus();
@@ -250,7 +254,7 @@ function setupEventListeners() {
             }
         });
     });
-    
+
     // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {
         if (e.code === 'Space' && e.target.tagName !== 'INPUT') {
@@ -264,18 +268,18 @@ function setupEventListeners() {
             Player.playNext();
         }
     });
-    
+
     // Mobile menu toggle
     const mobileMenuBtn = document.getElementById('mobileMenuBtn');
     const sidebar = document.getElementById('sidebar');
     const sidebarOverlay = document.getElementById('sidebarOverlay');
-    
+
     if (mobileMenuBtn && sidebar && sidebarOverlay) {
         const toggleSidebar = () => {
             sidebar.classList.toggle('-translate-x-full');
             sidebarOverlay.classList.toggle('hidden');
         };
-        
+
         mobileMenuBtn.addEventListener('click', toggleSidebar);
         sidebarOverlay.addEventListener('click', toggleSidebar);
     }
@@ -284,7 +288,7 @@ function setupEventListeners() {
 document.addEventListener('DOMContentLoaded', initializeApp);
 
 // Export for debugging purposes
-window.Syncano = {
+window.Melodexa = {
     AppState,
     Player,
     Search,

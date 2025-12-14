@@ -1,6 +1,6 @@
 """
 Application Configuration
-Centralized configuration management for the Syncano music streaming application.
+Centralized configuration management for the Melodexa music streaming application.
 """
 import os
 from datetime import timedelta
@@ -10,7 +10,7 @@ class Config:
     """Base configuration class with common settings."""
     
     # Flask Settings
-    SECRET_KEY = os.environ.get('SECRET_KEY', 'syncano-secret-key-change-in-production')
+    SECRET_KEY = os.environ.get('SECRET_KEY', 'melodexa-secret-key-change-in-production')
     DEBUG = False
     TESTING = False
     

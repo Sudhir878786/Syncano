@@ -1,386 +1,322 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Syncano - Listen together, anywhere</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        spotify: {
-                            green: '#1DB954',
-                            black: '#000000',
-                            dark: '#121212',
-                            darker: '#181818',
-                            gray: '#282828',
-                            'light-gray': '#B3B3B3',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link href="{{ url_for('static', filename='css/premium-effects.css') }}" rel="stylesheet">
-    <style>
-        /* Custom styles for audio player and animations */
-        .glass-effect {
-            backdrop-filter: blur(10px);
-            background: rgba(24, 24, 24, 0.8);
-        }
-        .gradient-text {
-            background: linear-gradient(135deg, #1DB954 0%, #1ed760 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-        @keyframes pulse-green {
-            0%, 100% { box-shadow: 0 0 0 0 rgba(29, 185, 84, 0.7); }
-            50% { box-shadow: 0 0 0 10px rgba(29, 185, 84, 0); }
-        }
-        .animate-pulse-green {
-            animation: pulse-green 2s infinite;
-        }
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 8px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #282828;
-            border-radius: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: #3E3E3E;
-        }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Melodexa | Ultra Premium Music</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/logo.png') }}">
 </head>
-<body class="bg-black text-white min-h-screen">
-    <div class="flex flex-col md:flex-row min-h-screen p-0 md:p-2 gap-0 md:gap-2 pb-20 md:pb-24">
-        <!-- Mobile Sidebar Overlay -->
-        <div id="sidebarOverlay" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-40 md:hidden"></div>
-        
-        <!-- Sidebar -->
-        <aside id="sidebar" class="sidebar-premium fixed md:static top-0 left-0 h-screen md:h-auto -translate-x-full md:translate-x-0 transition-transform duration-300 z-50 md:z-auto flex rounded-none md:rounded-lg flex-col w-64 lg:w-72 overflow-hidden">
-            <!-- Logo -->
-            <div class="p-6 border-b border-spotify-gray flex-shrink-0">
-                <div class="flex items-center gap-3">
-                    <i class="fas fa-broadcast-tower text-spotify-green text-2xl"></i>
-                    <span class="font-bold text-xl gradient-text">Syncano</span>
-                </div>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="logo-container">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Melodexa" class="logo-img">
+                <span class="logo-text">Melodexa</span>
             </div>
-            
-            <!-- Scrollable Content Container -->
-            <div class="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
-                <!-- Navigation -->
-                <nav class="p-4 space-y-2">
-                    <a href="#" class="nav-item active flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-spotify-gray transition-all group" data-section="home">
-                        <i class="fas fa-home text-lg group-hover:text-spotify-green transition-colors"></i>
-                        <span class="font-semibold">Home</span>
-                    </a>
-                    <a href="#" class="nav-item flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-spotify-gray transition-all group" data-section="search">
-                        <i class="fas fa-search text-lg group-hover:text-spotify-green transition-colors"></i>
-                        <span class="font-semibold">Search</span>
-                    </a>
-                    <a href="#" class="nav-item flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-spotify-gray transition-all group" id="likedSongsBtn" data-section="liked">
-                        <i class="fas fa-heart text-lg group-hover:text-spotify-green transition-colors"></i>
-                        <span class="font-semibold">Liked Songs</span>
-                    </a>
-                </nav>
-                
-                <div class="border-t border-spotify-gray my-2"></div>
-                
-                <!-- Playlists Section -->
-                <div class="p-4">
-                    <h3 class="text-spotify-light-gray text-xs uppercase font-bold mb-3 tracking-wider">Playlists</h3>
-                    <div id="playlistsContainer" class="space-y-1 max-h-48 overflow-y-auto custom-scrollbar">
-                        <!-- Playlists will be dynamically loaded here -->
-                    </div>
+
+            <nav class="main-nav">
+                <ul>
+                    <li class="nav-item active" id="navHome" data-section="home">
+                        <a href="#"><i class="fas fa-home"></i> <span>Home</span></a>
+                    </li>
+                    <li class="nav-item" id="navSearch" data-section="search">
+                        <a href="#"><i class="fas fa-search"></i> <span>Search</span></a>
+                    </li>
+                    <li class="nav-item" id="navLibrary" data-section="liked">
+                        <a href="#" id="likedSongs"><i class="fas fa-heart"></i> <span>Liked Songs</span></a>
+                    </li>
+                </ul>
+            </nav>
+
+            <div class="sidebar-divider"></div>
+
+            <div class="playlists-section">
+                <div class="section-header">
+                    <h3>LISTEN TOGETHER</h3>
                 </div>
-                
-                <div class="border-t border-spotify-gray my-2"></div>
-                
-                <!-- Room Controls -->
-                <div class="p-4 pb-8">
-                <h3 class="text-spotify-light-gray text-xs uppercase font-bold mb-4 tracking-wider">Listen Together</h3>
-                <div class="space-y-2">
-                    <button id="createRoomBtn" class="btn-premium w-full flex items-center justify-center gap-3">
-                        <i class="fas fa-users"></i>
-                        <span>Create Blend</span>
+                <div class="action-buttons">
+                    <button id="createRoomBtn" class="action-btn create">
+                        <i class="fas fa-plus-circle"></i> Create Blend
                     </button>
-                    <button id="joinRoomBtn" class="w-full flex items-center gap-3 px-4 py-3 bg-spotify-gray hover:bg-gray-600 font-semibold rounded-lg transition-all transform hover:scale-105">
-                        <i class="fas fa-users"></i>
-                        <span>Join Blend</span>
+                    <button id="joinRoomBtn" class="action-btn join">
+                        <i class="fas fa-users"></i> Join Blend
                     </button>
-                    
-                    <!-- Blend Info -->
-                    <div id="roomInfo" class="hidden mt-4 card-premium border-glow">
-                        <div id="roomStatus" class="text-sm text-spotify-light-gray mb-3"></div>
-                        <div class="space-y-2">
-                            <button id="syncWithRoomBtn" class="hidden w-full flex items-center gap-2 px-3 py-2 bg-yellow-500 hover:bg-yellow-400 text-black font-semibold rounded text-sm transition-all">
-                                <i class="fas fa-sync-alt"></i>
-                                <span>Vibe Check</span>
-                            </button>
-                            <button id="leaveRoomBtn" class="hidden w-full flex items-center gap-2 px-3 py-2 bg-red-600 hover:bg-red-500 font-semibold rounded text-sm transition-premium">
-                                <i class="fas fa-sign-out-alt"></i>
-                                <span>Leave Blend</span>
-                            </button>
-                        </div>
-                        <div id="roomUsers" class="mt-3 flex flex-wrap gap-2"></div>
+                </div>
+
+                <div class="room-status-card hidden" id="roomInfo">
+                    <div class="room-header-mini">
+                        <span class="live-badge">LIVE</span>
+                        <button class="leave-btn-mini" onclick="window.location.reload()"><i
+                                class="fas fa-sign-out-alt"></i></button>
+                    </div>
+                    <div class="room-details-mini">
+                        <p class="room-id-display">ID: <span id="roomStatus">Loading...</span></p>
+                        <p class="room-users-count"><i class="fas fa-user-friends"></i> <span id="roomUsers">1</span>
+                            listening</p>
                     </div>
                 </div>
             </div>
-            </div><!-- End scrollable container -->
         </aside>
 
-        <!-- Main Content -->
-        <main class="flex-1 flex flex-col min-w-0 bg-spotify-dark rounded-none md:rounded-lg">
-            <!-- Top Bar -->
-            <div class="glass-effect sticky top-0 z-10 px-3 md:px-6 py-3 md:py-4 border-b border-spotify-gray">
-                <div class="flex items-center gap-2 md:gap-4 mb-3">
-                    <!-- Mobile Menu Button -->
-                    <button id="mobileMenuBtn" class="md:hidden text-spotify-light-gray hover:text-white p-2">
-                        <i class="fas fa-bars text-xl"></i>
-                    </button>
-                    
-                    <!-- Search Bar -->
-                    <div class="flex-1 max-w-xl">
-                        <div class="relative group">
-                            <i class="fas fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-spotify-light-gray group-focus-within:text-spotify-green transition-colors z-10"></i>
-                            <input 
-                                type="text" 
-                                id="searchInput" 
-                                placeholder="Search for songs, artists..." 
-                                class="w-full bg-white text-black pl-12 pr-12 py-3 rounded-full focus:outline-none focus:ring-2 focus:ring-spotify-green transition-all"
-                                autocomplete="off"
-                            >
-                            <button id="testApiBtn" class="absolute right-4 top-1/2 transform -translate-y-1/2 text-spotify-light-gray hover:text-spotify-green transition-colors z-10" title="Test API">
-                                <i class="fas fa-flask"></i>
-                            </button>
-                            
-                            <!-- Live Suggestions Dropdown -->
-                            <div id="searchSuggestions" class="hidden absolute top-full left-0 right-0 mt-2 bg-spotify-darker rounded-2xl shadow-2xl border border-spotify-gray overflow-hidden z-50 max-h-96 overflow-y-auto">
-                                <div id="suggestionsContent" class="divide-y divide-spotify-gray/30"></div>
-                            </div>
-                        </div>
+        <!-- Main Content Area -->
+        <main class="main-view">
+            <!-- Top Header (Search & User) -->
+            <header class="top-bar">
+                <div class="nav-controls">
+                    <button class="nav-btn" disabled><i class="fas fa-chevron-left"></i></button>
+                    <button class="nav-btn" disabled><i class="fas fa-chevron-right"></i></button>
+                </div>
+
+                <div class="search-container">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" id="searchInput" placeholder="Search for songs, artists..." autocomplete="off">
+                    <div id="searchSuggestions" class="search-suggestions hidden">
+                        <div id="suggestionsContent"></div>
                     </div>
-                    
-                    <!-- User Profile -->
-                    <button class="flex items-center gap-2 bg-spotify-black hover:bg-spotify-gray px-4 py-2 rounded-full transition-all">
-                        <i class="fas fa-user-circle text-2xl"></i>
-                        <span class="font-semibold hidden md:inline">Profile</span>
+                </div>
+
+                <div class="user-controls">
+                    <button class="user-profile-btn">
+                        <i class="fas fa-user-circle"></i>
+                        <span>Profile</span>
                     </button>
                 </div>
-            </div>            <!-- Content Area -->
-            <div class="flex-1 overflow-y-auto px-3 md:px-6 py-4 md:py-8 pb-24 md:pb-8">
+            </header>
+
+            <!-- Scrollable Content -->
+            <div class="content-wrapper">
+                <!-- Loading Spinner -->
+                <div id="loadingSpinner" class="loading-overlay hidden">
+                    <div class="spinner">
+                        <div class="bar1"></div>
+                        <div class="bar2"></div>
+                        <div class="bar3"></div>
+                        <div class="bar4"></div>
+                    </div>
+                </div>
+
                 <!-- Welcome Section -->
-                <section id="welcomeSection" class="space-y-6 md:space-y-8">
-                    <h1 class="text-2xl md:text-4xl font-bold mb-4 md:mb-6">Good evening</h1>
-                    
-                    <div class="bg-gradient-to-br from-spotify-green/20 to-transparent p-6 md:p-8 rounded-2xl border border-spotify-green/30">
-                        <div class="text-center space-y-3 md:space-y-4">
-                            <i class="fas fa-headphones text-4xl md:text-6xl text-spotify-green"></i>
-                            <h2 class="text-xl md:text-3xl font-bold">Welcome to Syncano</h2>
-                            <p class="text-base md:text-xl text-spotify-light-gray">🎧 Listen together, anywhere. Perfectly in sync.</p>
-                            <p class="text-sm md:text-base text-spotify-light-gray">Real-time. Real beats. Real connection.</p>
-                            <div class="flex items-center justify-center gap-2 mt-4">
-                                <i class="fas fa-broadcast-tower text-spotify-green"></i>
-                                <span class="font-semibold text-sm md:text-base">One track, one tempo — infinite listeners.</span>
+                <section id="welcomeSection" class="view-section active">
+                    <h2 class="greeting">Good evening</h2>
+
+                    <div class="hero-card">
+                        <div class="hero-content">
+                            <div class="hero-icon">
+                                <img src="{{ url_for('static', filename='images/logo.png') }}" class="hero-logo-img"
+                                    alt="Melodexa">
+                            </div>
+                            <h1>Welcome to Melodexa</h1>
+                            <p class="subtitle">🎧 Listen together, anywhere. Perfectly in sync.</p>
+                            <p class="description">Real-time. Real beats. Real connection.</p>
+                            <div class="hero-badges">
+                                <span class="badge"><i class="fas fa-broadcast-tower"></i> One track, one tempo —
+                                    Infinite listeners.</span>
                             </div>
                         </div>
                     </div>
-                    
-                    <div>
-                        <h2 class="text-xl md:text-2xl font-bold mb-4 md:mb-6">Made for you</h2>
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-                            <div class="bg-spotify-darker hover:bg-spotify-gray p-4 md:p-6 rounded-lg cursor-pointer transition-all transform hover:scale-105 group">
-                                <i class="fas fa-fire text-2xl md:text-3xl text-orange-500 mb-2 md:mb-3 group-hover:animate-bounce"></i>
-                                <p class="font-semibold text-sm md:text-base">Trending Now</p>
+
+                    <h2 class="section-title">Made for you</h2>
+                    <div class="made-for-you-container">
+                        <div class="playlist-card glass-card trending-card"
+                            onclick="Melodexa.PlaylistManager.showPlaylist('hindi-trending')">
+                            <div class="img-container trending-bg">
+                                <i class="fas fa-fire"></i>
                             </div>
-                            <div class="bg-spotify-darker hover:bg-spotify-gray p-4 md:p-6 rounded-lg cursor-pointer transition-all transform hover:scale-105 group">
-                                <i class="fas fa-star text-2xl md:text-3xl text-yellow-500 mb-2 md:mb-3 group-hover:animate-spin"></i>
-                                <p class="font-semibold text-sm md:text-base">Top Charts</p>
+                            <h3>Trending Now</h3>
+                            <p>Global hits.</p>
+                            <div class="play-overlay"><i class="fas fa-play"></i></div>
+                        </div>
+                        <div class="playlist-card glass-card charts-card"
+                            onclick="Melodexa.PlaylistManager.showPlaylist('english-trending')">
+                            <div class="img-container charts-bg">
+                                <i class="fas fa-crown"></i>
                             </div>
-                            <div class="bg-spotify-darker hover:bg-spotify-gray p-6 rounded-lg cursor-pointer transition-all transform hover:scale-105 group">
-                                <i class="fas fa-music text-3xl text-spotify-green mb-3 group-hover:animate-pulse"></i>
-                                <p class="font-semibold">New Releases</p>
+                            <h3>Top Charts</h3>
+                            <p>Top 50 songs.</p>
+                            <div class="play-overlay"><i class="fas fa-play"></i></div>
+                        </div>
+                        <div class="playlist-card glass-card bollywood-card"
+                            onclick="Melodexa.PlaylistManager.showPlaylist('bollywood-hits')">
+                            <div class="img-container bollywood-bg">
+                                <i class="fas fa-film"></i>
                             </div>
-                            <div class="bg-spotify-darker hover:bg-spotify-gray p-6 rounded-lg cursor-pointer transition-all transform hover:scale-105 group">
-                                <i class="fas fa-podcast text-3xl text-purple-500 mb-3 group-hover:animate-bounce"></i>
-                                <p class="font-semibold">Podcasts</p>
+                            <h3>Bollywood Hits</h3>
+                            <p>The best of Bollywood.</p>
+                            <div class="play-overlay"><i class="fas fa-play"></i></div>
+                        </div>
+                        <div class="playlist-card glass-card workout-card"
+                            onclick="Melodexa.PlaylistManager.showPlaylist('workout')">
+                            <div class="img-container workout-bg">
+                                <i class="fas fa-bolt"></i>
                             </div>
+                            <h3>Workout Mix</h3>
+                            <p>High energy tracks.</p>
+                            <div class="play-overlay"><i class="fas fa-play"></i></div>
+                        </div>
+                        <div class="playlist-card glass-card romantic-card"
+                            onclick="Melodexa.PlaylistManager.showPlaylist('romantic')">
+                            <div class="img-container romantic-bg">
+                                <i class="fas fa-heart"></i>
+                            </div>
+                            <h3>Romantic</h3>
+                            <p>Love songs for every mood.</p>
+                            <div class="play-overlay"><i class="fas fa-play"></i></div>
+                        </div>
+                        <div class="playlist-card glass-card party-card" onclick="Melodexa.PlaylistManager.showPlaylist('party')">
+                            <div class="img-container party-bg">
+                                <i class="fas fa-music"></i>
+                            </div>
+                            <h3>Party Hits</h3>
+                            <p>Talks & Shows.</p>
+                            <div class="play-overlay"><i class="fas fa-play"></i></div>
                         </div>
                     </div>
                 </section>
 
                 <!-- Search Results -->
-                <section id="searchResults" class="hidden">
-                    <h2 class="text-3xl font-bold mb-6">Search Results</h2>
-                    <div id="resultsContainer" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4"></div>
+                <section id="searchResults" class="view-section hidden">
+                    <h2 class="section-title">Search Results</h2>
+                    <div id="resultsContainer" class="results-grid"></div>
                 </section>
-                
+
+                <!-- Playlist/Album View -->
+                <section id="playlistView" class="view-section hidden">
+                    <div class="playlist-header glass-header">
+                        <div class="playlist-cover-art">
+                            <img id="playlistImage" src="" alt="Album Art">
+                        </div>
+                        <div class="playlist-info">
+                            <span class="type-label">PLAYLIST</span>
+                            <h1 id="playlistTitle">Title</h1>
+                            <p id="playlistDescription">Description</p>
+                            <div class="playlist-meta">
+                                <span class="logo-text">Melodexa</span> • <span class="song-count">50 songs</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="playlist-actions-bar">
+                        <button class="play-btn-lg"><i class="fas fa-play"></i></button>
+                        <button class="icon-btn"><i class="far fa-heart"></i></button>
+                        <button class="icon-btn"><i class="fas fa-ellipsis-h"></i></button>
+                    </div>
+                    <div id="playlistContainer" class="song-list-container"></div>
+                </section>
+
                 <!-- Liked Songs -->
-                <section id="likedSongs" class="hidden">
-                    <div class="flex items-center gap-4 mb-8">
-                        <div class="w-16 h-16 bg-gradient-to-br from-purple-600 to-blue-500 rounded flex items-center justify-center">
-                            <i class="fas fa-heart text-3xl"></i>
+                <section id="likedSongsSection" class="view-section hidden">
+                    <div class="playlist-header liked-header">
+                        <div class="playlist-cover-art liked-cover">
+                            <i class="fas fa-heart"></i>
                         </div>
-                        <div>
-                            <p class="text-xs uppercase tracking-wider">Playlist</p>
-                            <h2 class="text-3xl font-bold">Liked Songs</h2>
-                        </div>
-                    </div>
-                    <div id="likedContainer" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4"></div>
-                </section>
-                
-                <!-- Playlist View -->
-                <section id="playlistView" class="hidden">
-                    <div class="flex items-center gap-4 mb-8">
-                        <img id="playlistImage" class="w-20 h-20 rounded-lg shadow-lg" alt="Playlist">
-                        <div>
-                            <p class="text-xs uppercase tracking-wider">Playlist</p>
-                            <h2 id="playlistTitle" class="text-2xl md:text-3xl font-bold"></h2>
-                            <p id="playlistDescription" class="text-sm text-spotify-light-gray mt-1"></p>
+                        <div class="playlist-info">
+                            <span class="type-label">PLAYLIST</span>
+                            <h1>Liked Songs</h1>
+                            <div class="playlist-meta">
+                                <span class="logo-text">Your Favorite Tracks</span>
+                            </div>
                         </div>
                     </div>
-                    <div id="playlistContainer" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4"></div>
+                    <div id="likedContainer" class="song-list-container"></div>
                 </section>
             </div>
         </main>
-    </div>
 
-    <!-- Music Player Footer -->
-    <footer id="player" class="player-premium fixed bottom-0 md:bottom-2 left-0 md:left-2 right-0 md:right-2 rounded-none md:rounded-lg p-2 md:p-4 z-50 cursor-pointer">
-        <div class="flex md:grid md:grid-cols-3 gap-2 md:gap-4 items-center">
+        <!-- Player Bar -->
+        <footer class="player-bar glass-bar">
             <!-- Song Info -->
-            <div class="flex items-center gap-2 md:gap-4 min-w-0 flex-1 md:flex-initial">
-                <img id="playerImage" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='56' viewBox='0 0 56 56'%3E%3Crect width='56' height='56' fill='%231DB954'/%3E%3Cpath d='M28 14c-7.732 0-14 6.268-14 14s6.268 14 14 14 14-6.268 14-14-6.268-14-14-14zm5.6 20.3l-.8.6c-.2.2-.5.2-.7 0l-4.1-3.1-4.1 3.1c-.2.2-.5.2-.7 0l-.8-.6c-.2-.2-.2-.5 0-.7l4.5-3.4-4.5-3.4c-.2-.2-.2-.5 0-.7l.8-.6c.2-.2.5-.2.7 0l4.1 3.1 4.1-3.1c.2-.2.5-.2.7 0l.8.6c.2.2.2.5 0 .7L28.7 30l4.5 3.4c.2.2.2.5 0 .7z' fill='white'/%3E%3C/svg%3E" alt="Syncano" class="album-art-glow w-10 h-10 md:w-14 md:h-14 rounded">
-                <div class="min-w-0 flex-1">
-                    <div id="playerTitle" class="font-semibold truncate text-sm md:text-base">No song selected</div>
-                    <div id="playerArtist" class="text-xs md:text-sm text-spotify-light-gray truncate">Select a song to play</div>
+            <div class="now-playing">
+                <div class="song-cover">
+                    <img id="playerImage" src="{{ url_for('static', filename='images/logo.png') }}" alt="Melodexa Logo">
                 </div>
-                <button class="hidden md:block player-icon-btn text-spotify-light-gray hover:text-white transition-colors" id="likeCurrentSongBtn" title="Like">
-                    <i class="far fa-heart text-xl"></i>
-                </button>
+                <div class="song-meta">
+                    <div class="scrolling-text-container">
+                        <a href="#" id="playerTitle" class="song-title">No song selected</a>
+                    </div>
+                    <a href="#" id="playerArtist" class="artist-name">Select a song to play</a>
+                </div>
+                <button id="likeCurrentSongBtn" class="like-btn-mini"><i class="far fa-heart"></i></button>
             </div>
-            
+
             <!-- Player Controls -->
-            <div class="flex flex-col items-center gap-1 md:gap-2 flex-shrink-0">
-                <div class="flex items-center gap-3 md:gap-6">
-                    <button class="hidden md:block text-spotify-light-gray hover:text-white transition-colors" id="shuffleBtn">
-                        <i class="fas fa-random"></i>
+            <div class="player-controls">
+                <div class="control-buttons">
+                    <button class="control-btn shuffle"><i class="fas fa-random"></i></button>
+                    <button id="prevBtn" class="control-btn prev"><i class="fas fa-step-backward"></i></button>
+                    <button id="playPauseBtn" class="control-btn play">
+                        <i class="fas fa-play"></i>
                     </button>
-                    <button class="text-spotify-light-gray hover:text-white transition-colors" id="prevBtn">
-                        <i class="fas fa-step-backward text-base md:text-lg"></i>
-                    </button>
-                    <button class="w-8 h-8 md:w-10 md:h-10 bg-white hover:bg-gray-200 text-black rounded-full flex items-center justify-center transition-all transform hover:scale-110" id="playPauseBtn">
-                        <i class="fas fa-play ml-0.5 text-sm md:text-base"></i>
-                    </button>
-                    <button class="text-spotify-light-gray hover:text-white transition-colors" id="nextBtn">
-                        <i class="fas fa-step-forward text-base md:text-lg"></i>
-                    </button>
-                    <button class="hidden md:block text-spotify-light-gray hover:text-white transition-colors" id="repeatBtn">
-                        <i class="fas fa-redo"></i>
-                    </button>
+                    <button id="nextBtn" class="control-btn next"><i class="fas fa-step-forward"></i></button>
+                    <button class="control-btn repeat"><i class="fas fa-redo"></i></button>
                 </div>
-                <div class="hidden md:flex items-center gap-3 w-full max-w-2xl">
-                    <span id="currentTime" class="text-xs text-spotify-light-gray min-w-[40px] text-right">0:00</span>
-                    <div class="flex-1 h-1 bg-spotify-gray rounded-full group cursor-pointer relative">
-                        <div id="progressFill" class="h-full bg-white rounded-full transition-all group-hover:bg-spotify-green relative">
-                            <div class="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                        </div>
-                        <input type="range" id="progressSlider" class="absolute inset-0 w-full opacity-0 cursor-pointer" min="0" max="100" value="0">
+
+                <div class="playback-bar">
+                    <span id="currentTime">0:00</span>
+                    <div class="progress-bar-container">
+                        <input type="range" id="progressSlider" class="slider" min="0" max="100" value="0">
+                        <div id="progressFill" class="progress-fill"></div>
                     </div>
-                    <span id="totalTime" class="text-xs text-spotify-light-gray min-w-[40px]">0:00</span>
+                    <span id="totalTime">0:00</span>
                 </div>
             </div>
-            
-            <!-- Volume & Controls -->
-            <div class="hidden md:flex items-center justify-end gap-4">
-                <button class="text-spotify-light-gray hover:text-white transition-colors" id="lyricsBtn" title="Lyrics">
-                    <i class="fas fa-terminal"></i>
-                </button>
-                <button class="text-spotify-light-gray hover:text-white transition-colors">
-                    <i class="fas fa-list"></i>
-                </button>
-                <div class="flex items-center gap-2">
-                    <button class="text-spotify-light-gray hover:text-white transition-colors" id="volumeBtn">
-                        <i class="fas fa-volume-up"></i>
-                    </button>
-                    <div class="w-24 h-1 bg-spotify-gray rounded-full group cursor-pointer relative">
-                        <div id="volumeFill" class="h-full bg-white rounded-full transition-all group-hover:bg-spotify-green relative" style="width: 50%">
-                            <div class="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                        </div>
-                        <input type="range" id="volumeSlider" class="absolute inset-0 w-full opacity-0 cursor-pointer" min="0" max="100" value="50">
+
+            <!-- Extra Controls -->
+            <div class="extra-controls">
+                <button id="lyricsBtn" class="control-btn"><i class="fas fa-microphone"></i></button>
+                <div class="volume-container">
+                    <button id="volumeBtn" class="control-btn"><i class="fas fa-volume-up"></i></button>
+                    <div class="volume-slider-container">
+                        <input type="range" id="volumeSlider" class="slider volume-slider" min="0" max="100" value="80">
+                        <div id="volumeFill" class="volume-fill" style="width: 80%"></div>
                     </div>
                 </div>
             </div>
-        </div>
-        <audio id="audioPlayer" preload="metadata"></audio>
-    </footer>
+        </footer>
+    </div>
 
-    <!-- Lyrics Terminal (Hidden by default, draggable) -->
-    <div id="lyricsTerminal" class="hidden fixed bottom-28 right-6 w-96 max-h-96 bg-black/95 border border-spotify-green rounded-lg shadow-2xl shadow-spotify-green/20 z-50 cursor-move">
-        <div id="lyricsHeader" class="flex items-center justify-between p-3 border-b border-spotify-green bg-gradient-to-r from-spotify-green/10 to-transparent cursor-grab active:cursor-grabbing">
-            <div class="flex items-center gap-2">
-                <div class="flex gap-1.5">
-                    <span class="w-3 h-3 bg-red-500 rounded-full cursor-pointer" id="closeLyricsBtn"></span>
-                    <span class="w-3 h-3 bg-yellow-500 rounded-full"></span>
-                    <span class="w-3 h-3 bg-green-500 rounded-full"></span>
+    <!-- Modals & Overlays -->
+
+    <!-- Room Modal -->
+    <div id="roomModal" class="modal-overlay hidden">
+        <div class="modal-content glass-modal">
+            <button id="closeModal" class="close-modal"><i class="fas fa-times"></i></button>
+            <h2 id="modalTitle">Start Listening Together</h2>
+            <div class="modal-body">
+                <div class="input-group">
+                    <label>Your Name</label>
+                    <input type="text" id="usernameInput" placeholder="Enter your display name">
                 </div>
-                <span class="text-spotify-green text-sm font-mono ml-3">lyrics.sh</span>
-            </div>
-        </div>
-        <div class="p-4 overflow-y-auto max-h-80 font-mono text-sm">
-            <div class="text-spotify-green mb-2">
-                <span class="text-green-400">user@syncano</span>:<span class="text-blue-400">~</span>$ <span class="text-yellow-300">cat current_song.lyrics</span>
-            </div>
-            <div id="lyricsContent" class="text-gray-300 space-y-2">
-                <div class="text-spotify-light-gray"># No lyrics available</div>
+                <div id="roomIdGroup" class="input-group hidden">
+                    <label>Room ID</label>
+                    <input type="text" id="roomIdInput" placeholder="Enter Room ID to join">
+                </div>
+                <button id="modalActionBtn" class="primary-btn full-width">Create Room</button>
             </div>
         </div>
     </div>
 
-    <!-- Loading Spinner -->
-    <div id="loadingSpinner" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50">
-        <div class="text-center">
-            <div class="w-16 h-16 border-4 border-spotify-green border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p class="text-lg font-semibold">Loading...</p>
+    <!-- Lyrics Overlay -->
+    <div id="lyricsTerminal" class="lyrics-overlay hidden">
+        <div class="lyrics-header">
+            <h3>Lyrics</h3>
+            <button id="closeLyricsBtn"><i class="fas fa-chevron-down"></i></button>
+        </div>
+        <div id="lyricsContent" class="lyrics-scroll-area">
+            <p class="lyrics-placeholder">Play a song to see lyrics...</p>
         </div>
     </div>
 
-    <!-- Blend Modal -->
-    <div id="roomModal" class="modal-premium hidden fixed inset-0 flex items-center justify-center z-50 p-4">
-        <div class="modal-content-premium max-w-md w-full transform transition-all">
-            <div class="p-6 border-b border-spotify-gray flex items-center justify-between">
-                <h2 id="modalTitle" class="text-2xl font-bold text-gradient-dynamic">Create Blend</h2>
-                <button class="text-spotify-light-gray hover:text-white transition-colors" id="closeModal">
-                    <i class="fas fa-times text-xl"></i>
-                </button>
-            </div>
-            <div class="p-6 space-y-4">
-                <div>
-                    <label for="usernameInput" class="block text-sm font-semibold mb-2">Your Name</label>
-                    <input type="text" id="usernameInput" placeholder="Enter your name" maxlength="20" class="w-full bg-spotify-gray text-white px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-spotify-green transition-all">
-                </div>
-                <div class="hidden" id="roomIdGroup">
-                    <label for="roomIdInput" class="block text-sm font-semibold mb-2">Blend ID</label>
-                    <input type="text" id="roomIdInput" placeholder="Enter blend ID" class="w-full bg-spotify-gray text-white px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-spotify-green transition-all">
-                </div>
-            </div>
-            <div class="p-6 border-t border-spotify-gray">
-                <button id="modalActionBtn" class="btn-premium w-full">
-                    Create Blend
-                </button>
-            </div>
-        </div>
-    </div>
+    <!-- Audio Element (Hidden) -->
+    <audio id="audioPlayer" crossorigin="anonymous"></audio>
 
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <script type="module" src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>
+
 </html>

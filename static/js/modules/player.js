@@ -11,6 +11,24 @@ import { ColorExtractor } from './color-extractor.js';
 import { showSyncIndicator, formatTime, showError } from './utils.js';
 
 export const Player = {
+    // Logo path for default display
+    LOGO_URL: '/static/images/logo.png',
+
+    /**
+     * Initialize default player display with logo
+     */
+    initializeDefaultDisplay() {
+        if (DOM.playerImage) {
+            DOM.playerImage.src = this.LOGO_URL;
+            DOM.playerImage.alt = 'Melodexa Logo';
+        }
+        if (DOM.playerTitle) {
+            DOM.playerTitle.textContent = 'No song selected';
+        }
+        if (DOM.playerArtist) {
+            DOM.playerArtist.textContent = 'Select a song to play';
+        }
+    },
     /**
      * Play a song at the given index
      * @param {number} index - Index in current playlist
@@ -115,7 +133,7 @@ export const Player = {
         DOM.playerTitle.textContent = song.title || song.song || 'Unknown Title';
         DOM.playerArtist.textContent = song.singers || song.artist || song.primary_artists || 'Unknown Artist';
         
-        document.title = `${song.title || song.song || 'Unknown Title'} • Syncano`;
+        document.title = `${song.title || song.song || 'Unknown Title'} • Melodexa`;
         
         AppState.currentSong = song;
         this.updateLikeButtons();
